@@ -1,0 +1,17 @@
+{
+  "name": "pure-insights-command-centre",
+  "version": "1.0.0",
+  "description": "Pure Insights Command Centre: admin dashboard with RBAC, real-time alerts and Snowflake cost attribution",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm start --prefix server\" \"npm run dev --prefix client\"",
+    "test": "npm test --prefix server",
+    "build": "npm run build --prefix client"
+  },
+  "author": "Rudra Solanki",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
