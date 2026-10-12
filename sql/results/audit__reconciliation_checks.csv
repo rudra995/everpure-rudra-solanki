@@ -1,0 +1,16 @@
+check_id,check_name,value_a,value_b,abs_diff,status
+1,Row count: RAW = STAGING (no row dropped),2000.0,2000.0,0.0,PASS
+2,No duplicated rows after joins (distinct source_row = rows),2000.0,2000.0,0.0,PASS
+3,Every usage row matched a credit log row (unmatched = 0),0.0,0.0,0.0,PASS
+4,Credits: valid + excluded negatives = raw total,1206191.44,1206191.44,0.0,PASS
+5,Credits: snapshot level = report mart,1206352.48,1206352.48,0.0,PASS
+6,Credits: attributed (query log) = metered (warehouse bill),1206191.44,1206191.44,0.0,PASS
+7,AWS cost: staging = raw,461949.25,461949.25,0.0,PASS
+8,Credit cost: report mart = snapshot level,3619057.44,3619057.44,0.0,PASS
+9,Fully loaded cost: report mart = credit cost + AWS (snapshot level),4081006.69,4081006.69,0.0,PASS
+10,Credit cost per view: platform = SUM(mart)/SUM(mart views),2.4297559292624613,2.4297559292624613,0.0,PASS
+11,Eligible + ineligible snapshots = all rows,2000.0,2000.0,0.0,PASS
+12,Orphaned = missing email + sentinel (no overlap),245.0,245.0,0.0,PASS
+13,Every report has exactly 20 snapshots (min),20.0,20.0,0.0,PASS
+14,Every report has exactly 20 snapshots (max),20.0,20.0,0.0,PASS
+15,Report count = 100,100.0,100.0,0.0,PASS

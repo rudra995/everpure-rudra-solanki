@@ -1,0 +1,2 @@
+snapshots,reports,credit_price_usd,credits_valid,credits_excluded_negative,credit_cost_usd,aws_cost_usd,fully_loaded_cost_usd,total_views,eligible_rows,eligible_views,credits_per_view,credit_cost_per_view_usd,fully_loaded_cost_per_view_usd,strict_rows,strict_credit_cost_per_view_usd
+2000,100,3.00,1206352.48,-161.04,3619057.4400,461949.25,4081006.6900,1503281,1972,1486905,0.8099186430874872,2.4297559292624613,2.7354311136219196,1885,2.331767624718243

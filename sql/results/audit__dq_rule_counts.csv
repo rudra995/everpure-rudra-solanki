@@ -1,0 +1,17 @@
+rule,rows_flagged,category
+raw_rows,2000,info
+orphaned_owner_nan,128,brief defect 1
+orphaned_owner_sentinel,117,brief defect 1
+negative_credits,24,brief defect 2
+latency_over_15s,1490,brief defect 3
+latency_at_55s_cap,6,brief defect 3
+aws_cost_usage_mismatch,212,brief defect 4
+owner_conflict_reports,100,hidden issue
+refresh_failed,564,alert source
+refresh_status_unknown,100,hidden issue
+refresh_status_unexpected,0,schema check
+zero_usage,4,hidden issue
+concurrent_exceeds_monthly_views,93,hidden issue
+per_view_eligible_rows,1972,info
+numeric_parse_failures,0,schema check
+report_name_variants,0,schema check

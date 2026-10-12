@@ -1,0 +1,9 @@
+report_id,report_name,canonical_owner,credits_valid,credit_cost_usd,total_views,credit_cost_per_view_usd,credit_quartile,usage_quartile,zero_view_snapshots,reason
+RPT_223,Analytics Dashboard 24,user_10@company.com,17034.76,51104.2800,11259,4.329616306954437,1,1,1,HIGH_CREDITS_LOW_USAGE
+RPT_230,Analytics Dashboard 31,user_12@company.com,14074.37,42223.1100,14325,2.7677424083769635,1,2,1,HAD_ZERO_VIEW_SNAPSHOT
+RPT_299,Analytics Dashboard 100,user_3@company.com,7795.11,23385.3300,15233,1.5121276176721592,4,3,1,HAD_ZERO_VIEW_SNAPSHOT
+RPT_278,Analytics Dashboard 79,user_3@company.com,13088.95,39266.8500,15604,2.4550801076647013,2,3,1,HAD_ZERO_VIEW_SNAPSHOT
+RPT_202,Analytics Dashboard 3,user_6@company.com,13387.37,40162.1100,13170,3.049514806378132,1,1,0,HIGH_CREDITS_LOW_USAGE
+RPT_268,Analytics Dashboard 69,user_12@company.com,13269.59,39808.7700,13204,3.0149023023326262,1,1,0,HIGH_CREDITS_LOW_USAGE
+RPT_235,Analytics Dashboard 36,user_6@company.com,13918.55,41755.6500,13255,3.1501810637495287,1,1,0,HIGH_CREDITS_LOW_USAGE
+RPT_275,Analytics Dashboard 76,user_13@company.com,14270.02,42810.0600,13586,3.1510422493743557,1,1,0,HIGH_CREDITS_LOW_USAGE
