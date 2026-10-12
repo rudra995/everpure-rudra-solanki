@@ -1,0 +1,18 @@
+{
+  "raw_rows": 2000,
+  "orphaned_owner_nan": 128,
+  "orphaned_owner_sentinel": 117,
+  "owner_conflict_reports": 100,
+  "negative_credits": 24,
+  "latency_over_15s": 1490,
+  "latency_at_55s_cap": 6,
+  "refresh_failed": 564,
+  "refresh_status_unknown": 100,
+  "refresh_status_unexpected": 0,
+  "zero_usage": 4,
+  "concurrent_exceeds_monthly_views": 93,
+  "aws_cost_usage_mismatch": 212,
+  "aws_cost_per_view_fence_usd": 1.3508,
+  "clean_rows": 2000,
+  "per_view_eligible_rows": 1972
+}

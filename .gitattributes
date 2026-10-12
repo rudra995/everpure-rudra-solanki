@@ -1,0 +1,2 @@
+# Keep data files byte-identical across OSes (raw data must never change)
+data/** -text

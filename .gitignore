@@ -1,0 +1,25 @@
+# Assessment materials (Everpure internal, not for a public repo)
+*.docx
+Case_Study_3_*.csv
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Local DBs
+*.sqlite
+*.duckdb
+
+# Snowflake private key
+keys/
+
+# Local working notes (not part of the submission)
+CLAUDE.md

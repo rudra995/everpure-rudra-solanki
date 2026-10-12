@@ -1,0 +1,13 @@
+{
+  "credit_price_usd": 3.0,
+  "credits_valid": 1206352.48,
+  "credit_cost_usd": 3619057.44,
+  "aws_cost_usd": 461949.25,
+  "eligible_rows": 1972,
+  "eligible_views": 1486905,
+  "credits_per_view": 0.809919,
+  "credit_cost_per_view_usd": 2.429756,
+  "fully_loaded_cost_per_view_usd": 2.735431,
+  "strict_rows": 1885,
+  "strict_credit_cost_per_view_usd": 2.331768
+}
