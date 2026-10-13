@@ -67,7 +67,7 @@ export function Stat({ label, value, unit, sub, icon: Icon, tone = 'accent', spa
   );
 }
 
-export function Sparkline({ data, dataKey, color, height = 34 }) {
+function Sparkline({ data, dataKey, color, height = 34 }) {
   const id = `sp-${dataKey}-${color.slice(1)}`;
   return (
     <div className="stat-spark" style={{ height }}>

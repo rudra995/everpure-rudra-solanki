@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
 
 export const useAuth = () => useContext(AuthContext);
 
-// Permission names, mirrored from server/src/rbac/permissions.js.
+// Permission names, mirrored from backend/src/rbac/permissions.js.
 export const P = {
   HEALTH_READ: 'health:read',
   REPORTS_READ_ALL: 'reports:read:all',

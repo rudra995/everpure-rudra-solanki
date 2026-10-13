@@ -323,8 +323,8 @@ export default function Cost() {
         <Notice>
           <b>How it is calculated.</b> Snowflake compute = valid credits × {fmt.usd(s?.credit_price_usd ?? 3)} per credit (an assumption, about Enterprise
           on-demand). AWS hosting comes straight from the source. Unit cost = SUM(cost) ÷ SUM(monthly active views) over eligible snapshots (credits not negative,
-          views above 0): a ratio of sums, not an average of per-row ratios. The Snowflake part alone ({usd4(t.snowPerView)}) is the figure the brief&apos;s
-          Task 3 asks for; AWS is added on top so the full cost of serving a view is visible.
+          views above 0): a ratio of sums, not an average of per-row ratios. The Snowflake part alone ({usd4(t.snowPerView)}) is the credit-consumption
+          unit cost the brief asks for; AWS is added on top so the full cost of serving a view is visible.
         </Notice>
       </div>
       </Group>

@@ -4,10 +4,10 @@
   "description": "Pure Insights Command Centre: admin dashboard with RBAC, real-time alerts and Snowflake cost attribution",
   "private": true,
   "scripts": {
-    "setup": "npm install && npm install --prefix server && npm install --prefix client",
-    "dev": "concurrently -n api,web -c blue,magenta \"npm start --prefix server\" \"npm run dev --prefix client\"",
-    "test": "npm test --prefix server",
-    "build": "npm run build --prefix client"
+    "setup": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm start --prefix backend\" \"npm run dev --prefix frontend\"",
+    "test": "npm test --prefix backend",
+    "build": "npm run build --prefix frontend"
   },
   "author": "Rudra Solanki",
   "license": "UNLICENSED",

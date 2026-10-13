@@ -54,7 +54,7 @@ export function TelemetryTape({ limit = 8 }) {
   const { telemetry, simulator } = useLive();
   const { c } = useTheme();
   if (!telemetry.length) {
-    return <Empty>{simulator?.running ? 'Waiting for the next snapshot…' : 'Replay is paused. A Platform Admin can start it from Live operations.'}</Empty>;
+    return <Empty>{simulator?.running ? 'Waiting for the next snapshot…' : 'Telemetry replay is paused.'}</Empty>;
   }
   return (
     <div className="tape">

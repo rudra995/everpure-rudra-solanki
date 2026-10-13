@@ -1,5 +1,5 @@
 {
-  "name": "pure-insights-client",
+  "name": "pure-insights-frontend",
   "version": "1.0.0",
   "description": "Pure Insights Command Centre dashboard (React + Vite)",
   "private": true,

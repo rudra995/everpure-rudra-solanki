@@ -21,17 +21,6 @@ export const db = {
 
 // Every query the API runs, in one place, so the API spec can point at them.
 export const SQL = {
-  healthSummary: `
-    SELECT COUNT(*)                                        AS reports,
-           SUM(CASE WHEN latest_refresh_status IN ('FAILED','TIMED_OUT') THEN 1 ELSE 0 END) AS reports_refresh_failing,
-           SUM(CASE WHEN latest_refresh_status = 'UNKNOWN' THEN 1 ELSE 0 END)               AS reports_status_unknown,
-           SUM(CASE WHEN latest_latency_severity <> 'OK' THEN 1 ELSE 0 END)                 AS reports_latency_breaching,
-           SUM(CASE WHEN latest_latency_severity = 'CRITICAL' THEN 1 ELSE 0 END)            AS reports_latency_critical,
-           SUM(CASE WHEN currently_orphaned THEN 1 ELSE 0 END)                              AS reports_currently_orphaned,
-           AVG(avg_load_time_sec)                         AS avg_load_time_sec,
-           AVG(latency_breach_rate)                       AS latency_breach_rate,
-           AVG(refresh_failure_rate)                      AS refresh_failure_rate
-    FROM marts.report_health`,
   reportHealth: `SELECT * FROM marts.report_health ORDER BY report_id`,
   reportHealthOne: `SELECT * FROM marts.report_health WHERE report_id = ?`,
   reportCost: `SELECT * FROM marts.report_cost_attribution ORDER BY credit_rank, report_id`,
