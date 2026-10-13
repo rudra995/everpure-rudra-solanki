@@ -1,14 +1,13 @@
-// Shared presentational building blocks. Colours come from the theme by metric kind
-// (snowflake, aws, usage, latency, refresh, ownership) or by status.
+// Shared presentational building blocks.
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Info } from 'lucide-react';
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { useTheme, SEVERITY_KEY, STATUS_KEY } from '../theme.jsx';
 
-export function PageHeader({ eyebrow, title, subtitle, actions }) {
+export function PageHeader({ index, eyebrow, title, subtitle, actions }) {
   return (
     <div className="page-head">
       <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        {(eyebrow || index) && <div className="eyebrow">{index && <span className="idx">{index}</span>}{eyebrow}</div>}
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>
@@ -17,55 +16,38 @@ export function PageHeader({ eyebrow, title, subtitle, actions }) {
   );
 }
 
-export function Panel({ title, subtitle, icon: Icon, iconColor, actions, flush, tight, bordered, children, className = '', style }) {
+export function SectionTitle({ children, note }) {
+  return <h2 className="section-title">{children}{note && <span>{note}</span>}</h2>;
+}
+
+export function Panel({ title, subtitle, actions, flush, bordered, children, className = '', style }) {
   return (
     <section className={`panel ${className}`} style={style}>
       {(title || actions) && (
         <div className={`panel-head ${bordered ? 'bordered' : ''}`}>
           <div>
-            {title && <div className="panel-title">{Icon && <Icon size={15} color={iconColor} />}{title}</div>}
+            {title && <div className="panel-title">{title}</div>}
             {subtitle && <div className="panel-sub">{subtitle}</div>}
           </div>
           {actions && <div className="row wrap">{actions}</div>}
         </div>
       )}
-      <div className={`panel-body ${flush ? 'flush' : ''} ${tight ? 'tight' : ''}`}>{children}</div>
+      <div className={`panel-body ${flush ? 'flush' : ''}`}>{children}</div>
     </section>
   );
 }
 
-// Stat tile: coloured icon chip by metric kind, value, sub-line, optional sparkline.
-export function Stat({ label, value, unit, sub, icon: Icon, tone = 'accent', spark, sparkKey, title }) {
+// KPI tile: the one number that matters, a plain-English line under it, optional footer
+// (e.g. a split bar). `tone` is a palette key used for the small colour marker.
+export function Stat({ label, value, unit, sub, tone, foot, to, valueColor }) {
   const { c } = useTheme();
-  const color = c[tone] ?? c.accent;
+  const navigate = useNavigate();
   return (
-    <div className="panel stat" style={{ '--tone': color }} title={title}>
-      <div className="stat-top">
-        {Icon && <span className="chip" style={{ background: `${color}22`, color }}><Icon size={14} /></span>}
-        {label}
-      </div>
-      <div className="stat-value">{value}{unit && <small>{unit}</small>}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
-      {spark && spark.length > 1 && <Sparkline data={spark} dataKey={sparkKey} color={color} />}
-    </div>
-  );
-}
-
-export function Sparkline({ data, dataKey, color, height = 34 }) {
-  const id = `sp-${dataKey}-${color.slice(1)}`;
-  return (
-    <div className="stat-spark" style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={1.6} fill={`url(#${id})`} isAnimationActive={false} dot={false} />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className={`panel kpi ${to ? 'link' : ''}`} onClick={to ? () => navigate(to) : undefined}>
+      <div className="kpi-label">{tone && <span className="kpi-dot" style={{ background: c[tone] ?? tone }} />}{label}</div>
+      <div className="kpi-value" style={valueColor ? { color: valueColor } : undefined}>{value}{unit && <small>{unit}</small>}</div>
+      {sub && <div className="kpi-sub">{sub}</div>}
+      {foot && <div className="kpi-foot">{foot}</div>}
     </div>
   );
 }
@@ -77,13 +59,14 @@ export function Badge({ color, children, title, dot }) {
 export function SeverityBadge({ value }) {
   const { c } = useTheme();
   if (!value) return <span className="faint">—</span>;
-  return <Badge color={c[SEVERITY_KEY[value]] ?? c.unknown} dot>{value}</Badge>;
+  return <Badge color={c[SEVERITY_KEY[value]] ?? c.unknown} dot>{value === 'OK' ? 'OK' : value.charAt(0) + value.slice(1).toLowerCase()}</Badge>;
 }
 
 export function StatusBadge({ value }) {
   const { c } = useTheme();
   if (!value) return <span className="faint">—</span>;
-  return <Badge color={c[STATUS_KEY[value]] ?? c.unknown}>{value.replace('_', ' ')}</Badge>;
+  const label = { SUCCESS: 'Success', FAILED: 'Failed', TIMED_OUT: 'Timed out', UNKNOWN: 'Unknown' }[value] ?? value;
+  return <Badge color={c[STATUS_KEY[value]] ?? c.unknown}>{label}</Badge>;
 }
 
 export function Loading({ label = 'Loading…' }) {
@@ -108,7 +91,6 @@ export function Empty({ children }) {
   return <div className="empty">{children}</div>;
 }
 
-// Segmented control. options: [{ value, label, color? }]
 export function Segmented({ options, value, onChange }) {
   return (
     <div className="seg">
@@ -121,19 +103,19 @@ export function Segmented({ options, value, onChange }) {
   );
 }
 
-// Proportional split bar with legend, e.g. Snowflake + AWS. parts: [{ label, value, color, display? }]
+// Proportional split bar with legend. parts: [{ label, value, color, display? }]
 export function SplitBar({ parts, thin, legend = true }) {
-  const total = parts.reduce((a, p) => a + Math.max(0, p.value), 0) || 1;
+  const total = parts.reduce((a, p) => a + Math.max(0, p.value || 0), 0) || 1;
   return (
     <div>
       <div className={`split ${thin ? 'thin' : ''}`}>
-        {parts.map((p) => <span key={p.label} style={{ width: `${(Math.max(0, p.value) / total) * 100}%`, background: p.color }} title={`${p.label}: ${p.display ?? p.value}`} />)}
+        {parts.map((p) => <span key={p.label} style={{ width: `${(Math.max(0, p.value || 0) / total) * 100}%`, background: p.color }} title={`${p.label}: ${p.display ?? p.value}`} />)}
       </div>
       {legend && (
         <div className="legend" style={{ marginTop: 10 }}>
           {parts.map((p) => (
             <span key={p.label}><span className="sw" style={{ background: p.color }} />{p.label}<b>{p.display ?? p.value}</b>
-              <span className="faint" style={{ marginLeft: 5 }}>{((Math.max(0, p.value) / total) * 100).toFixed(1)}%</span></span>
+              <span className="faint" style={{ marginLeft: 5 }}>{((Math.max(0, p.value || 0) / total) * 100).toFixed(0)}%</span></span>
           ))}
         </div>
       )}
