@@ -108,16 +108,16 @@ export default function Orphaned() {
               <XAxis dataKey="label" {...axis(c)} interval={1} />
               <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ orphanNaN: 'Missing email (NaN)', orphanSentinel: 'ORPHANED_REPORT' }} />} />
-              <Bar dataKey="orphanNaN" stackId="a" fill={c.ownership} />
-              <Bar dataKey="orphanSentinel" stackId="a" fill={c.refresh} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="orphanNaN" stackId="a" fill="url(#pi-bar-orange)" />
+              <Bar dataKey="orphanSentinel" stackId="a" fill={c.refresh} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <Legend items={[{ label: 'Missing email (NaN)', color: c.ownership }, { label: 'ORPHANED_REPORT placeholder', color: c.aws }]} />
+          <Legend items={[{ label: 'Missing email (NaN)', color: c.ownership }, { label: 'ORPHANED_REPORT placeholder', color: c.ink }]} />
         </Panel>
         <Panel title="How a report becomes orphaned" subtitle="Two defect patterns from the brief, both kept (never dropped)">
           <SplitBar parts={[
             { label: 'NaN', value: s.missing_email_records, color: c.ownership, display: s.missing_email_records },
-            { label: 'ORPHANED_REPORT', value: s.sentinel_records, color: c.aws, display: s.sentinel_records },
+            { label: 'ORPHANED_REPORT', value: s.sentinel_records, color: c.ink, display: s.sentinel_records },
           ]} />
           <dl className="dl" style={{ marginTop: 16 }}>
             <dt>Records (rows) orphaned</dt><dd>{s.orphaned_records} of 2,000</dd>
@@ -136,7 +136,7 @@ export default function Orphaned() {
               <YAxis type="category" dataKey="report_id" width={64} {...axis(c)} axisLine={false} interval={0} />
               <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ missing_email_snapshots: 'Missing email', sentinel_snapshots: 'ORPHANED_REPORT' }} />} />
               <Bar dataKey="sentinel_snapshots" stackId="a" fill={c.refresh} />
-              <Bar dataKey="missing_email_snapshots" stackId="a" fill={c.ownership} radius={[0, 6, 6, 0]} />
+              <Bar dataKey="missing_email_snapshots" stackId="a" fill="url(#pi-bar-orange-h)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <Legend items={[{ label: 'Missing email', color: c.ownership }, { label: 'ORPHANED_REPORT', color: c.refresh }]} />

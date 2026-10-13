@@ -122,16 +122,17 @@ export function heatLegend(metric, c) {
   return LAT_ORDER.map((s) => ({ label: s === 'OK' ? 'OK ≤ 15 s' : s, color: c[SEVERITY_KEY[s]] }));
 }
 
-// Donut for part-to-whole (<= 6 parts): centre total and a value legend.
-export function Donut({ parts, centerLabel, centerValue, format = (v) => fmt.num(v), size = 132 }) {
+// Donut for part-to-whole (<= 6 parts): a large ring with the total in the centre and a
+// compact legend underneath (label, value, share).
+export function Donut({ parts, centerLabel, centerValue, format = (v) => fmt.num(v), size = 176 }) {
   const total = parts.reduce((a, p) => a + (p.value || 0), 0) || 1;
   return (
-    <div className="donut-wrap" style={{ gridTemplateColumns: `${size}px 1fr` }}>
+    <div className="donut">
       <div className="donut-box" style={{ width: size, height: size }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={parts} dataKey="value" nameKey="label" innerRadius={size * 0.34} outerRadius={size * 0.49} paddingAngle={2} cornerRadius={4} stroke="none" isAnimationActive={false}>
-              {parts.map((p) => <Cell key={p.label} fill={p.fill ?? p.color} />)}
+            <Pie data={parts} dataKey="value" nameKey="label" innerRadius={size * 0.36} outerRadius={size * 0.5} paddingAngle={2} cornerRadius={5} stroke="none" isAnimationActive={false} startAngle={90} endAngle={-270}>
+              {parts.map((p) => <Cell key={p.label} fill={p.color} />)}
             </Pie>
             <Tooltip content={({ active, payload }) => (active && payload?.length ? (
               <div className="tt"><div className="tt-row"><span><span className="sw" style={{ background: payload[0].payload.color }} />{payload[0].name}</span><b>{format(payload[0].value)}</b></div></div>) : null)} />
@@ -139,9 +140,9 @@ export function Donut({ parts, centerLabel, centerValue, format = (v) => fmt.num
         </ResponsiveContainer>
         <div className="donut-center"><b>{centerValue ?? format(total)}</b><span>{centerLabel}</span></div>
       </div>
-      <div className="vlegend">
+      <div className="donut-legend">
         {parts.map((p) => (
-          <div key={p.label}><i style={{ background: p.color }} /><span>{p.label}</span><b>{format(p.value)}</b><em>{((p.value / total) * 100).toFixed(0)}%</em></div>
+          <span key={p.label}><i style={{ background: p.color }} />{p.label} <b>{format(p.value)}</b> <em>{((p.value / total) * 100).toFixed(0)}%</em></span>
         ))}
       </div>
     </div>

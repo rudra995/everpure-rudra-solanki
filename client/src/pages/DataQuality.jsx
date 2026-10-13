@@ -74,15 +74,15 @@ export default function DataQuality() {
       </div>
 
       <div className="grid g-main">
-      <Panel title="Rows caught per rule" subtitle="Out of 2,000 rows · orange = brief defect, black = alert source, peach = hidden issue">
+      <Panel title="Rows caught per rule" subtitle="Out of 2,000 rows · orange = brief defect, dark = alert source, gray = hidden issue">
         <ResponsiveContainer width="100%" height={330}>
           <BarChart data={chartRules} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }} barCategoryGap="22%">
             <CartesianGrid horizontal={false} />
             <XAxis type="number" {...axis(c)} />
             <YAxis type="category" dataKey="rule" width={220} {...axis(c)} axisLine={false} interval={0} tickFormatter={(v) => v.replace(/_/g, ' ')} />
             <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip title={(l, p) => p?.[0]?.payload?.label ?? l} names={{ rows_flagged: 'Rows flagged' }} />} />
-            <Bar dataKey="rows_flagged" radius={[0, 4, 4, 0]}>
-              {chartRules.map((r) => <Cell key={r.rule} fill={r.category.startsWith('brief') ? 'url(#pi-bar-orange-h)' : r.category === 'alert source' ? c.ink : c.peach} />)}
+            <Bar dataKey="rows_flagged" radius={[0, 6, 6, 0]}>
+              {chartRules.map((r) => <Cell key={r.rule} fill={r.category.startsWith('brief') ? 'url(#pi-bar-orange-h)' : r.category === 'alert source' ? c.ink : c.gray} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

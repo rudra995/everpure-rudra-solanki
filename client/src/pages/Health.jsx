@@ -35,7 +35,7 @@ export default function Health() {
   const snaps = snapsQ.data?.snapshots ?? [];
   const rows = useMemo(() => reports.filter(MATCH[filter]), [reports, filter]);
   const series = useMemo(() => bySnapshot(snaps), [snaps]);
-  const hist = useMemo(() => latencyHistogram(snaps), [snaps]);
+  const hist = useMemo(() => latencyHistogram(snaps).map((b) => ({ ...b, under: b.OK, over: b.WARNING + b.HIGH + b.CRITICAL })), [snaps]);
   const slowest = useMemo(() => [...reports].sort((a, b) => b.avg_load_time_sec - a.avg_load_time_sec).slice(0, 10), [reports]);
   const breach = useMemo(() => series.map((x) => ({ ...x, breachPct: x.breachRate * 100 })), [series]);
 
@@ -98,10 +98,11 @@ export default function Health() {
               <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Load time ${l}`} />} />
               <ReferenceLine x="15–20s" stroke={c.warning} strokeDasharray="4 3" />
-              {['OK', 'WARNING', 'HIGH', 'CRITICAL'].map((s, i) => <Bar key={s} dataKey={s} stackId="a" fill={c[SEVERITY_KEY[s]]} radius={i === 3 ? [4, 4, 0, 0] : 0} />)}
+              <Bar dataKey="under" stackId="a" fill={c.ink} />
+              <Bar dataKey="over" stackId="a" fill="url(#pi-bar-orange)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <Legend items={['OK', 'WARNING', 'HIGH', 'CRITICAL'].map((s) => ({ label: s, color: c[SEVERITY_KEY[s]] }))} />
+          <Legend items={[{ label: '≤ 15 s', color: c.ink }, { label: '> 15 s (alerted)', color: c.orange }]} />
         </Panel>
         <Panel title="Refresh problems by snapshot" subtitle="FAILED and TIMED_OUT raise alerts; UNKNOWN is tracked separately">
           <ResponsiveContainer width="100%" height={250}>
@@ -110,10 +111,12 @@ export default function Health() {
               <XAxis dataKey="label" {...axis(c)} interval={1} />
               <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ TIMED_OUT: 'TIMED OUT' }} />} />
-              {['FAILED', 'TIMED_OUT', 'UNKNOWN'].map((s, i) => <Bar key={s} dataKey={s} stackId="a" fill={c[STATUS_KEY[s]]} radius={i === 2 ? [4, 4, 0, 0] : 0} />)}
+              <Bar dataKey="FAILED" stackId="a" fill={c.ink} />
+              <Bar dataKey="TIMED_OUT" stackId="a" fill="url(#pi-bar-orange)" />
+              <Bar dataKey="UNKNOWN" stackId="a" fill={c.gray} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <Legend items={['FAILED', 'TIMED_OUT', 'UNKNOWN'].map((s) => ({ label: s.replace('_', ' '), color: c[STATUS_KEY[s]] }))} />
+          <Legend items={[{ label: 'Failed', color: c.ink }, { label: 'Timed out', color: c.orange }, { label: 'Unknown', color: c.gray }]} />
         </Panel>
       </div>
       <div className="grid g-3">

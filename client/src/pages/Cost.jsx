@@ -140,13 +140,13 @@ export default function Cost() {
           <div className="hero-value">{usd4(t.totalPerView)}</div>
           <div className="hero-eq">
             <span>=</span>
-            <span className="row" style={{ gap: 6 }}><Snowflake size={15} color={'#e9e9e4'} /><b>{usd4(t.snowPerView)}</b> Snowflake compute</span>
+            <span className="row" style={{ gap: 6 }}><Snowflake size={15} color={'var(--hero-snow)'} /><b>{usd4(t.snowPerView)}</b> Snowflake compute</span>
             <span>+</span>
             <span className="row" style={{ gap: 6 }}><Cloud size={15} color={c.aws} /><b>{usd4(t.awsPerView)}</b> AWS hosting</span>
           </div>
           <div style={{ marginTop: 18 }}>
             <SplitBar parts={[
-              { label: 'Snowflake per view', value: t.snowPerView, color: '#e9e9e4', display: usd4(t.snowPerView) },
+              { label: 'Snowflake per view', value: t.snowPerView, color: 'var(--hero-snow)', display: usd4(t.snowPerView) },
               { label: 'AWS per view', value: t.awsPerView, color: c.aws, display: usd4(t.awsPerView) },
             ]} />
           </div>
@@ -193,7 +193,7 @@ export default function Cost() {
         </Panel>
         <Panel title="Spend split" subtitle="Total across all snapshots">
           <Donut centerLabel="total" centerValue={fmt.usdCompact(t.snowflake + t.aws)} format={fmt.usdCompact}
-            parts={[{ label: 'Snowflake compute', value: t.snowflake, color: c.snowflake }, { label: 'AWS hosting', value: t.aws, color: c.aws, fill: 'url(#pi-hatch)' }]} />
+            parts={[{ label: 'Snowflake compute', value: t.snowflake, color: c.snowflake }, { label: 'AWS hosting', value: t.aws, color: c.aws }]} />
         </Panel>
       </div>
       <div className="grid g-2">
@@ -208,7 +208,7 @@ export default function Cost() {
                 names={{ snowflake: 'Snowflake', aws: 'AWS', snowPV: 'Snowflake / view', awsPV: 'AWS / view' }}
                 format={(v) => (snapMode === 'total' ? fmt.usd(v, 0) : fmt.usd(v, 4))} />} />
               <Bar dataKey={snapMode === 'total' ? 'snowflake' : 'snowPV'} stackId="a" fill={c.snowflake} />
-              <Bar dataKey={snapMode === 'total' ? 'aws' : 'awsPV'} stackId="a" fill="url(#pi-hatch)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={snapMode === 'total' ? 'aws' : 'awsPV'} stackId="a" fill="url(#pi-bar-orange)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <Legend items={[{ label: 'Snowflake compute', color: c.snowflake }, { label: 'AWS hosting', color: c.aws }]} />
@@ -226,7 +226,7 @@ export default function Cost() {
                 <YAxis type="category" dataKey="report_id" width={66} {...axis(c)} axisLine={false} interval={0} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ credit_cost_per_view_usd: 'Snowflake / view', aws_per_view_usd: 'AWS / view' }} format={(v) => fmt.usd(v, 3)} />} />
                 <Bar dataKey="credit_cost_per_view_usd" stackId="a" fill={c.snowflake} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
-                <Bar dataKey="aws_per_view_usd" stackId="a" fill="url(#pi-hatch)" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
+                <Bar dataKey="aws_per_view_usd" stackId="a" fill="url(#pi-bar-orange-h)" radius={[0, 6, 6, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
               </BarChart>
             ) : (
               <BarChart data={top} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap="24%">
@@ -234,8 +234,8 @@ export default function Cost() {
                 <XAxis type="number" {...axis(c)} tickFormatter={fmt.usdCompact} />
                 <YAxis type="category" dataKey="report_id" width={66} {...axis(c)} axisLine={false} interval={0} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ credit_cost_usd: 'Snowflake', aws_cost_usd: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
-                {sortBy !== 'aws' && <Bar dataKey="credit_cost_usd" stackId="a" fill={c.snowflake} radius={sortBy === 'snowflake' ? [0, 4, 4, 0] : 0} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
-                {sortBy !== 'snowflake' && <Bar dataKey="aws_cost_usd" stackId="a" fill="url(#pi-hatch)" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
+                {sortBy !== 'aws' && <Bar dataKey="credit_cost_usd" stackId="a" fill={c.snowflake} radius={sortBy === 'snowflake' ? [0, 6, 6, 0] : 0} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
+                {sortBy !== 'snowflake' && <Bar dataKey="aws_cost_usd" stackId="a" fill="url(#pi-bar-orange-h)" radius={[0, 6, 6, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
               </BarChart>
             )}
           </ResponsiveContainer>

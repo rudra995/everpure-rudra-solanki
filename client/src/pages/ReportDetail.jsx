@@ -91,7 +91,7 @@ export default function ReportDetail() {
         <>
           <Group title="History and cost" subtitle="Across the 20 snapshots">
           <div className={`grid ${cost ? 'g-2' : ''} mt`}>
-            <Panel title="Load time by snapshot" subtitle="Bar colour = severity · red dot = refresh FAILED or TIMED_OUT · line = 15 s threshold">
+            <Panel title="Load time by snapshot" subtitle="Orange = over the 15 s threshold · red dot = refresh failed or timed out">
               <ResponsiveContainer width="100%" height={250}>
                 <ComposedChart data={chart} margin={{ top: 8, right: 6, bottom: 0, left: -14 }} barCategoryGap="18%">
                   <CartesianGrid vertical={false} />
@@ -99,13 +99,13 @@ export default function ReportDetail() {
                   <YAxis {...axis(c)} axisLine={false} unit="s" domain={[0, 60]} />
                   <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip title={(l) => `Snapshot ${l}`} names={{ avg_load_time_sec: 'Load time', failed: 'Refresh failed at' }} format={(v) => `${Number(v).toFixed(1)}s`} />} />
                   <ReferenceLine y={15} stroke={c.warning} strokeDasharray="4 3" />
-                  <Bar dataKey="avg_load_time_sec" radius={[4, 4, 0, 0]}>
-                    {chart.map((s) => <Cell key={s.snapshot_seq} fill={c[SEVERITY_KEY[s.latency_severity]]} />)}
+                  <Bar dataKey="avg_load_time_sec" radius={[6, 6, 0, 0]}>
+                    {chart.map((s) => <Cell key={s.snapshot_seq} fill={s.latency_severity === 'OK' ? c.ink : 'url(#pi-bar-orange)'} />)}
                   </Bar>
                   <Line dataKey="failed" stroke="none" dot={{ r: 5, fill: c.critical, stroke: c.surface, strokeWidth: 2 }} isAnimationActive={false} />
                 </ComposedChart>
               </ResponsiveContainer>
-              <Legend items={['OK', 'WARNING', 'HIGH', 'CRITICAL'].map((s) => ({ label: s, color: c[SEVERITY_KEY[s]] }))} />
+              <Legend items={[{ label: '≤ 15 s', color: c.ink }, { label: '> 15 s', color: c.orange }, { label: 'Refresh failed', color: c.critical }]} />
             </Panel>
             {cost && (
               <Panel title="Cost by snapshot" subtitle="Snowflake compute + AWS hosting · gaps = negative credits excluded">
@@ -116,7 +116,7 @@ export default function ReportDetail() {
                     <YAxis {...axis(c)} axisLine={false} width={48} tickFormatter={fmt.usdCompact} />
                     <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ snowflake: 'Snowflake', aws: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
                     <Bar dataKey="snowflake" stackId="a" fill={c.snowflake} />
-                    <Bar dataKey="aws" stackId="a" fill="url(#pi-hatch)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="aws" stackId="a" fill="url(#pi-bar-orange)" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
                 <Legend items={[{ label: 'Snowflake compute', color: c.snowflake }, { label: 'AWS hosting', color: c.aws }]} />

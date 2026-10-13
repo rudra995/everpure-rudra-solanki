@@ -84,13 +84,13 @@ export default function Overview() {
               <div className="hero-label">{scopeOwn ? 'Your cost per active view' : 'Cost per active user view'}</div>
               <div className="hero-value">{fmt.usd(cost.totalPV, 4)}</div>
               <div className="hero-eq">
-                <span className="row" style={{ gap: 5 }}><Snowflake size={14} color={'#e9e9e4'} /><b>{fmt.usd(cost.snowPV, 4)}</b></span>
+                <span className="row" style={{ gap: 5 }}><Snowflake size={14} color={'var(--hero-snow)'} /><b>{fmt.usd(cost.snowPV, 4)}</b></span>
                 <span>+</span>
                 <span className="row" style={{ gap: 5 }}><Cloud size={14} color={c.aws} /><b>{fmt.usd(cost.totalPV - cost.snowPV, 4)}</b></span>
               </div>
               <div style={{ marginTop: 16 }}>
                 <SplitBar parts={[
-                  { label: 'Snowflake', value: cost.snow, color: '#e9e9e4', display: fmt.usdCompact(cost.snow) },
+                  { label: 'Snowflake', value: cost.snow, color: 'var(--hero-snow)', display: fmt.usdCompact(cost.snow) },
                   { label: 'AWS', value: cost.aws, color: c.aws, display: fmt.usdCompact(cost.aws) },
                 ]} />
               </div>
@@ -126,7 +126,7 @@ export default function Overview() {
                 <YAxis {...axis(c)} axisLine={false} width={46} tickFormatter={fmt.usdCompact} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ snowflake: 'Snowflake', aws: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
                 <Bar dataKey="snowflake" stackId="a" fill={c.snowflake} />
-                <Bar dataKey="aws" stackId="a" fill="url(#pi-hatch)" radius={[5, 5, 0, 0]} />
+                <Bar dataKey="aws" stackId="a" fill="url(#pi-bar-orange)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <Legend items={[{ label: 'Snowflake', color: c.snowflake }, { label: 'AWS', color: c.aws }]} />
@@ -140,7 +140,7 @@ export default function Overview() {
                 <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ FAILED: 'Failed', TIMED_OUT: 'Timed out' }} />} />
                 <Bar dataKey="FAILED" stackId="a" fill={c.ink} />
-                <Bar dataKey="TIMED_OUT" stackId="a" fill="url(#pi-hatch)" radius={[5, 5, 0, 0]} />
+                <Bar dataKey="TIMED_OUT" stackId="a" fill="url(#pi-bar-orange)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Panel>
@@ -192,7 +192,7 @@ export default function Overview() {
               <div style={{ marginTop: 14 }}>
                 <SplitBar thin parts={[
                   { label: 'Missing email (NaN)', value: orphaned.data.summary.missing_email_records, color: c.ownership, display: orphaned.data.summary.missing_email_records },
-                  { label: 'ORPHANED_REPORT', value: orphaned.data.summary.sentinel_records, color: c.aws, display: orphaned.data.summary.sentinel_records },
+                  { label: 'ORPHANED_REPORT', value: orphaned.data.summary.sentinel_records, color: c.ink, display: orphaned.data.summary.sentinel_records },
                 ]} />
               </div>
             </Panel>
