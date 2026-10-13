@@ -30,6 +30,13 @@ duckdb data/pure_insights.duckdb < sql/duckdb/run_all.sql
 
 The script prints the data-quality counts, the 15 reconciliation checks and the platform unit cost. It also rebuilds `results/`.
 
+## Run it on Snowflake (optional)
+
+1. `python sql/snowflake/make_keypair.py` creates a key pair in `keys/` (git-ignored) and prints the public key.
+2. Paste that key into `snowflake/00_bootstrap.sql` and run the file in Snowsight as ACCOUNTADMIN. It is kept manual on purpose so a person reads it first.
+3. Copy `.env.example` to `.env` and set `SNOWFLAKE_ACCOUNT`.
+4. `python sql/snowflake/run_snowflake.py` uploads the CSV and runs `01` to `09` in order.
+
 ## Layers
 
 ```

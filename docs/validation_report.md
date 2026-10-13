@@ -2,7 +2,7 @@
 
 How the source data was checked and cleaned, what was assumed, and how the numbers were verified. Source: `data/raw/case_study_3.csv`, 2,000 rows × 10 columns, 100 reports (`RPT_200`–`RPT_299`) with exactly 20 rows each, no date column.
 
-Every rule below is a named function in `analysis/clean.py` (with tests in `analysis/test_clean.py`) and the same rule in SQL (`sql/*/staging`). No row is ever deleted; every finding is written to `data/clean/issues.csv` with the report, source row, column, original value, rule and action.
+Every rule below is a named function in `analysis/clean.py` (with tests in `analysis/test_clean.py`) and the same rule in SQL (`sql/duckdb/03_staging.sql` and `sql/snowflake/04_staging.sql`). No row is ever deleted; every finding is written to `data/clean/issues.csv` with the report, source row, column, original value, rule and action.
 
 ## 1. Defects named in the brief
 
