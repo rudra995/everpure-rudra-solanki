@@ -17,6 +17,21 @@ export function PageHeader({ eyebrow, title, subtitle, actions }) {
   );
 }
 
+// Section: one rounded surface grouping related tiles and charts, with a short heading.
+export function Group({ title, subtitle, actions, children }) {
+  return (
+    <section className="group">
+      {(title || actions) && (
+        <div className="group-head">
+          <div>{title && <div className="group-title">{title}</div>}{subtitle && <div className="group-sub">{subtitle}</div>}</div>
+          {actions && <div className="row wrap">{actions}</div>}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
 export function Panel({ title, subtitle, icon: Icon, iconColor, actions, flush, tight, bordered, children, className = '', style }) {
   return (
     <section className={`panel ${className}`} style={style}>
@@ -35,18 +50,19 @@ export function Panel({ title, subtitle, icon: Icon, iconColor, actions, flush, 
 }
 
 // Stat tile: coloured icon chip by metric kind, value, sub-line, optional sparkline.
-export function Stat({ label, value, unit, sub, icon: Icon, tone = 'accent', spark, sparkKey, title }) {
+export function Stat({ label, value, unit, sub, icon: Icon, tone = 'accent', spark, sparkKey, title, variant }) {
   const { c } = useTheme();
   const color = c[tone] ?? c.accent;
+  const lineColor = variant === 'accent' ? '#ffffff' : color;
   return (
-    <div className="panel stat" style={{ '--tone': color }} title={title}>
+    <div className={`panel stat ${variant ? `${variant}-tile` : ''}`} style={{ '--tone': color }} title={title}>
       <div className="stat-top">
         {Icon && <span className="chip" style={{ background: `${color}22`, color }}><Icon size={14} /></span>}
         {label}
       </div>
       <div className="stat-value">{value}{unit && <small>{unit}</small>}</div>
       {sub && <div className="stat-sub">{sub}</div>}
-      {spark && spark.length > 1 && <Sparkline data={spark} dataKey={sparkKey} color={color} />}
+      {spark && spark.length > 1 && <Sparkline data={spark} dataKey={sparkKey} color={lineColor} />}
     </div>
   );
 }

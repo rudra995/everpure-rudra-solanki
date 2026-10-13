@@ -5,7 +5,7 @@ import { ArrowLeft, Clock, Eye, FileWarning, Lock, RefreshCw, Snowflake, Timer }
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApi } from '../api/useApi.js';
 import { useTheme, SEVERITY_KEY } from '../theme.jsx';
-import { Badge, ErrorState, Loading, Notice, PageHeader, Panel, SeverityBadge, SplitBar, Stat, StatusBadge, Legend } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, Notice, PageHeader, Panel, SeverityBadge, SplitBar, Stat, StatusBadge, Legend } from '../components/ui.jsx';
 import { ChartTooltip, axis } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { fmt } from '../format.js';
@@ -75,8 +75,9 @@ export default function ReportDetail() {
           {cost && <Badge color={c.unknown}>{cost.owner_distinct_count} different owner emails in source</Badge>}
         </span>} />
 
+      <Group title="Current state">
       <div className="grid g-5">
-        <Stat tone="latency" icon={Clock} label="Load time now" value={fmt.sec(r.latest_load_time_sec)} sub={<SeverityBadge value={r.latest_latency_severity} />} spark={chart} sparkKey="avg_load_time_sec" />
+        <Stat variant="accent" tone="latency" icon={Clock} label="Load time now" value={fmt.sec(r.latest_load_time_sec)} sub={<SeverityBadge value={r.latest_latency_severity} />} spark={chart} sparkKey="avg_load_time_sec" />
         <Stat tone="refresh" icon={RefreshCw} label="Refresh now" value={<StatusBadge value={r.latest_refresh_status} />} sub={`Failure rate ${fmt.pct(r.refresh_failure_rate)} over 20`} />
         <Stat tone="serious" icon={Timer} label="p95 load time" value={fmt.sec(r.p95_load_time_sec)} sub={`${fmt.pct(r.latency_breach_rate)} of snapshots over 15 s`} />
         <Stat tone="ownership" icon={FileWarning} label="Orphaned snapshots" value={`${r.orphaned_snapshots} / 20`} sub={r.currently_orphaned ? 'Latest snapshot has no owner' : 'Owner on latest snapshot'} />
@@ -84,9 +85,11 @@ export default function ReportDetail() {
           ? <Stat tone="snowflake" icon={Snowflake} label="Cost per view" value={fmt.usd(cost.fully_loaded_cost_per_view_usd, 3)} sub={`${fmt.usd(cost.credit_cost_per_view_usd, 3)} Snowflake + ${fmt.usd(awsPerView, 3)} AWS`} />
           : <Stat tone="usage" icon={Eye} label="Avg load (20)" value={fmt.sec(r.avg_load_time_sec)} sub="Mean of all snapshots" />}
       </div>
+      </Group>
 
       {snapshots ? (
         <>
+          <Group title="History and cost" subtitle="Across the 20 snapshots">
           <div className={`grid ${cost ? 'g-2' : ''} mt`}>
             <Panel title="Load time by snapshot" subtitle="Bar colour = severity · red dot = refresh FAILED or TIMED_OUT · line = 15 s threshold">
               <ResponsiveContainer width="100%" height={250}>
@@ -152,6 +155,7 @@ export default function ReportDetail() {
               </Panel>
             )}
           </div>
+          </Group>
 
           <Panel className="mt" flush bordered title="Snapshots" subtitle="Every flag the cleaning rules raised for this report">
             <DataTable rows={snapshots.map((s) => ({ ...s, id: s.snapshot_seq }))} columns={columns} pageSize={20} initialSort={{ key: 'snapshot_seq', dir: 'asc' }} />

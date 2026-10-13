@@ -9,7 +9,7 @@ import { Cloud, Coins, Eye, Gauge, MinusCircle, Server, Snowflake } from 'lucide
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { useTheme } from '../theme.jsx';
-import { Badge, ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
 import { ChartTooltip, axis } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { awsPerView } from '../data.js';
@@ -130,6 +130,7 @@ export default function Cost() {
           ? 'Snowflake compute and AWS hosting attributed to every report from the simulated ACCOUNT_USAGE logs. Negative credits are excluded, never flipped to positive.'
           : `Snowflake compute and AWS hosting for the ${reports.length} reports you own, calculated exactly like the platform figure.`} />
 
+      <Group title="Unit cost" subtitle="Snowflake compute + AWS hosting per active view">
       <div className="grid g-main">
         <div className="hero">
           <div className="hero-label">{all ? 'Unit cost per active user view' : 'Your unit cost per active view'}</div>
@@ -158,7 +159,7 @@ export default function Cost() {
       </div>
 
       <div className="grid g-6 mt">
-        <Stat tone="snowflake" icon={Snowflake} label="Snowflake compute" value={fmt.usdCompact(t.snowflake)} sub={`${fmt.compact(t.credits)} valid credits${s ? ` × ${fmt.usd(s.credit_price_usd)}` : ''}`} spark={perSnap} sparkKey="snowflake" />
+        <Stat variant="accent" tone="snowflake" icon={Snowflake} label="Snowflake compute" value={fmt.usdCompact(t.snowflake)} sub={`${fmt.compact(t.credits)} valid credits${s ? ` × ${fmt.usd(s.credit_price_usd)}` : ''}`} spark={perSnap} sparkKey="snowflake" />
         <Stat tone="aws" icon={Server} label="AWS hosting" value={fmt.usdCompact(t.aws)} sub="Hosting cost, all snapshots" spark={perSnap} sparkKey="aws" />
         <Stat tone="usage" icon={Eye} label="Active user views" value={fmt.compact(t.views)} sub="Eligible snapshots only" />
         <Stat tone="snowflake" icon={Gauge} label="Credits per view" value={fmt.num(t.creditsPerView, 4)} sub="No price assumption needed" />
@@ -167,7 +168,9 @@ export default function Cost() {
           : <Stat tone="latency" icon={Coins} label="Reports" value={own.reports} sub="That you own" />}
         <Stat tone="critical" icon={MinusCircle} label="Negative credits excluded" value={s ? fmt.num(s.credits_excluded_negative, 1) : '—'} sub="24 snapshots · logged as defects" />
       </div>
+      </Group>
 
+      <Group title="Where the cost goes" subtitle="By snapshot, report, owner and usage">
       <div className="grid g-2 mt">
         <Panel title="Spend by snapshot" subtitle="Snapshots 1–20 per report (file order; the data has no dates)"
           actions={<Segmented value={snapMode} onChange={setSnapMode} options={[{ value: 'total', label: 'Total $' }, { value: 'perView', label: 'Per view' }]} />}>
@@ -260,7 +263,9 @@ export default function Cost() {
           </Panel>
         )}
       </div>
+      </Group>
 
+      <Group title="Cost by report" subtitle="Per-report attribution, showback and waste">
       <Panel className="mt" flush title="Breakdown" bordered actions={<Segmented value={tab} onChange={setTab} options={tabs} />}>
         {tab === 'reports' && (
           <DataTable rows={reports} columns={reportColumns} searchKeys={['report_id', 'report_name', 'canonical_owner']}
@@ -297,6 +302,7 @@ export default function Cost() {
           Task 3 asks for; AWS is added on top so the full cost of serving a view is visible.
         </Notice>
       </div>
+      </Group>
     </>
   );
 }

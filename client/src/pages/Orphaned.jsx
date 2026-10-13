@@ -7,7 +7,7 @@ import { Check, Coins, FileWarning, History, MailX, UserPlus, X } from 'lucide-r
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { api } from '../api/http.js';
-import { Badge, ErrorState, Loading, Modal, Notice, PageHeader, Panel, Segmented, Stat, Empty, Legend, SplitBar } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, Modal, Notice, PageHeader, Panel, Segmented, Stat, Empty, Legend, SplitBar } from '../components/ui.jsx';
 import { ChartTooltip, axis } from '../components/charts.jsx';
 import { useTheme } from '../theme.jsx';
 import { bySnapshot } from '../data.js';
@@ -90,8 +90,9 @@ export default function Orphaned() {
       <PageHeader eyebrow="Task 1 · Ownership governance" title="Orphaned reports"
         subtitle="A record is orphaned when its owner email is missing (NaN) or the placeholder ORPHANED_REPORT. No report is orphaned in all 20 snapshots, so a report counts as currently orphaned when its latest snapshot has no owner." />
 
+      <Group title="Ownership" subtitle="Orphaned records and reports">
       <div className="grid g-4">
-        <Stat tone="ownership" icon={MailX} label="Orphaned records" value={s.orphaned_records} sub={`${s.missing_email_records} NaN · ${s.sentinel_records} ORPHANED_REPORT`} spark={series} sparkKey="orphanNaN" />
+        <Stat variant="accent" tone="ownership" icon={MailX} label="Orphaned records" value={s.orphaned_records} sub={`${s.missing_email_records} NaN · ${s.sentinel_records} ORPHANED_REPORT`} spark={series} sparkKey="orphanNaN" />
         <Stat tone="critical" icon={FileWarning} label="Reports orphaned now" value={s.reports_currently_orphaned} sub="Latest snapshot has no owner" />
         <Stat tone="accent" icon={History} label="Reports ever orphaned" value={s.reports_ever_orphaned} sub="At least one snapshot without owner" />
         {seesAllCost
@@ -126,8 +127,10 @@ export default function Orphaned() {
           </dl>
         </Panel>
       </div>
+      </Group>
 
       {(canClaim || canApprove) && (
+        <Group title="Ownership claims">
         <Panel className="mt" bordered title={canApprove ? 'Ownership claims · review queue' : 'Your ownership claims'}
           subtitle={canApprove ? 'Approving reassigns the report everywhere: access, alerts and cost. You cannot decide your own claim.' : 'An admin reviews every claim before ownership changes.'} flush>
           {claimList.length === 0 && <Empty>{canApprove ? 'No claims yet.' : 'You have not claimed any reports. Use Claim on a currently orphaned report below.'}</Empty>}
@@ -156,8 +159,10 @@ export default function Orphaned() {
             </table>
           )}
         </Panel>
+        </Group>
       )}
 
+      <Group title="Orphaned reports">
       <Panel className="mt" title="Reports with orphaned snapshots" flush bordered>
         <DataTable rows={rows} columns={columns} searchKeys={['report_id', 'report_name', 'canonical_owner']}
           initialSort={{ key: 'orphaned_snapshots', dir: 'desc' }}
@@ -173,6 +178,7 @@ export default function Orphaned() {
           &quot;most frequent owner&quot; is a suggestion. That&apos;s why ownership changes need a human claim and an admin approval.
         </Notice>
       </div>
+      </Group>
 
       {claiming && (
         <Modal title={`Claim ${claiming.report_id}`} onClose={close}

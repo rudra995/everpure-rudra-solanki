@@ -7,7 +7,7 @@ import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { useLive } from '../live/LiveContext.jsx';
 import { useTheme, SEVERITY_KEY, STATUS_KEY } from '../theme.jsx';
-import { ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
+import { Group, ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
 import { Heatmap, heatLegend } from '../components/charts.jsx';
 import { AlertStream, TelemetryTape } from '../components/LiveWidgets.jsx';
 import { bySnapshot } from '../data.js';
@@ -60,15 +60,18 @@ export default function Overview() {
           : 'Health of all 100 portal reports. "Now" means each report\'s latest snapshot (20 of 20).'}
         actions={live.simulator?.running && <span className="pill"><span className="live-dot on" />Replaying snapshot <b>#{live.simulator.last_seq ?? '–'}</b> · cycle {live.simulator.cycle}</span>} />
 
+      <Group title="Platform status" subtitle="Latest snapshot of every report">
       <div className="grid g-6">
-        <Stat tone="accent" icon={Gauge} label={scopeOwn ? 'Your reports' : 'Reports monitored'} value={reports.length} sub={`${fmt.num(snaps.length)} snapshots analysed`} />
+        <Stat variant="accent" tone="accent" icon={Gauge} label={scopeOwn ? 'Your reports' : 'Reports monitored'} value={reports.length} sub={`${fmt.num(snaps.length)} snapshots analysed`} />
         <Stat tone="latency" icon={Clock} label="Avg load time" value={fmt.sec(avgLatency)} sub="Across all snapshots" spark={series} sparkKey="avgLatency" />
         <Stat tone="serious" icon={AlertTriangle} label="Over 15 s now" value={count((r) => r.latest_latency_severity !== 'OK')} sub={`${sev('CRITICAL')} critical (over 45 s)`} spark={series} sparkKey="breachRate" />
         <Stat tone="refresh" icon={RefreshCw} label="Refresh failing now" value={status('FAILED') + status('TIMED_OUT')} sub={`${status('FAILED')} failed · ${status('TIMED_OUT')} timed out`} spark={series} sparkKey="failureRate" />
         <Stat tone="ownership" icon={FileWarning} label="Orphaned now" value={count((r) => r.currently_orphaned)} sub="No owner on latest snapshot" />
         <Stat tone="usage" icon={Eye} label="Monthly active views" value={fmt.compact(views)} sub="Sum over snapshots" spark={series} sparkKey="views" />
       </div>
+      </Group>
 
+      <Group title="Health and cost" subtitle="Where reports are slow, failing or unowned, and what a view costs">
       <div className="grid g-main mt">
         <Panel title="Report health map" subtitle="Every report (columns) × snapshots 1–20 (rows). Hover a cell for detail, click to open the report."
           actions={<Segmented value={metric} onChange={setMetric} options={[
@@ -113,7 +116,9 @@ export default function Overview() {
           </Panel>
         </div>
       </div>
+      </Group>
 
+      <Group title="Live activity" subtitle="Alerts and telemetry streaming over WebSocket">
       <div className={`grid ${live.receivesAlerts ? 'g-main' : ''} mt`}>
         {live.receivesAlerts && (
           <Panel flush bordered title="Live alert stream" subtitle={`${fmt.num(live.received)} delivered over WebSocket this session · every breach, no cooldown`}
@@ -125,8 +130,10 @@ export default function Overview() {
           <TelemetryTape limit={live.receivesAlerts ? 6 : 12} />
         </Panel>
       </div>
+      </Group>
 
       {(orphaned.data || dq.data) && (
+        <Group title="Governance" subtitle="Ownership and data validation">
         <div className="grid g-2 mt">
           {orphaned.data && (
             <Panel title="Orphaned reports" icon={FileWarning} iconColor={c.ownership} actions={<Link to="/orphaned" className="btn sm">Review</Link>}>
@@ -161,6 +168,7 @@ export default function Overview() {
             </Panel>
           )}
         </div>
+        </Group>
       )}
     </>
   );

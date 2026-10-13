@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Toolt
 import { AlertTriangle, Clock, HelpCircle, RefreshCw, Timer } from 'lucide-react';
 import { useApi } from '../api/useApi.js';
 import { useTheme, SEVERITY_KEY, STATUS_KEY } from '../theme.jsx';
-import { Badge, ErrorState, Loading, PageHeader, Panel, Segmented, SeverityBadge, Stat, StatusBadge, Legend } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, PageHeader, Panel, Segmented, SeverityBadge, Stat, StatusBadge, Legend } from '../components/ui.jsx';
 import { ChartTooltip, Heatmap, axis, heatLegend } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { bySnapshot, latencyHistogram } from '../data.js';
@@ -70,14 +70,17 @@ export default function Health() {
       <PageHeader eyebrow="Task 1 · System health" title="System health"
         subtitle={`Load latency and refresh reliability for ${data.scope === 'own' ? 'your' : 'all'} ${reports.length} reports across ${fmt.num(snaps.length)} snapshots. "Now" = snapshot 20.`} />
 
+      <Group title="Key metrics" subtitle="Across all snapshots">
       <div className="grid g-5">
-        <Stat tone="latency" icon={Clock} label="Avg load time" value={fmt.sec(snaps.reduce((a, s) => a + Number(s.avg_load_time_sec), 0) / n)} sub={`p95 ${fmt.sec(p95)}`} spark={series} sparkKey="avgLatency" />
+        <Stat variant="accent" tone="latency" icon={Clock} label="Avg load time" value={fmt.sec(snaps.reduce((a, s) => a + Number(s.avg_load_time_sec), 0) / n)} sub={`p95 ${fmt.sec(p95)}`} spark={series} sparkKey="avgLatency" />
         <Stat tone="serious" icon={AlertTriangle} label="Snapshots over 15 s" value={fmt.pct(cnt((s) => s.avg_load_time_sec > 15) / n)} sub={`${fmt.num(cnt((s) => s.avg_load_time_sec > 15))} breaches · alert threshold`} spark={series} sparkKey="breachRate" />
         <Stat tone="critical" icon={Timer} label="Critical (over 45 s)" value={fmt.num(cnt((s) => s.latency_severity === 'CRITICAL'))} sub={`${cnt((s) => Number(s.avg_load_time_sec) === 55)} at the 55 s maximum`} spark={series} sparkKey="CRITICAL" />
         <Stat tone="refresh" icon={RefreshCw} label="Refresh failure rate" value={fmt.pct(cnt((s) => ['FAILED', 'TIMED_OUT'].includes(s.last_refresh_status)) / n)} sub={`${cnt((s) => s.last_refresh_status === 'FAILED')} failed · ${cnt((s) => s.last_refresh_status === 'TIMED_OUT')} timed out`} spark={series} sparkKey="failureRate" />
         <Stat tone="unknown" icon={HelpCircle} label="Unknown status" value={fmt.num(cnt((s) => s.last_refresh_status === 'UNKNOWN'))} sub="Needs review · not a failure" />
       </div>
+      </Group>
 
+      <Group title="Latency and refresh" subtitle="Per report and per snapshot">
       <Panel className="mt" title="Report health map" subtitle="Each column is a report, each row a snapshot (1 at the top). Hover for detail, click to drill in."
         actions={<Segmented value={metric} onChange={setMetric} options={[
           { value: 'latency', label: 'Latency', color: c.latency }, { value: 'refresh', label: 'Refresh', color: c.refresh }, { value: 'ownership', label: 'Ownership', color: c.ownership }]} />}>
@@ -112,12 +115,15 @@ export default function Health() {
           <Legend items={['FAILED', 'TIMED_OUT', 'UNKNOWN'].map((s) => ({ label: s.replace('_', ' '), color: c[STATUS_KEY[s]] }))} />
         </Panel>
       </div>
+      </Group>
 
+      <Group title="Report list" subtitle="Latest snapshot per report">
       <Panel className="mt" flush title="Reports" subtitle="Click a row for its 20 snapshots" bordered>
         <DataTable rows={rows} columns={columns} searchKeys={['report_id', 'report_name', 'canonical_owner']}
           initialSort={{ key: 'latest_load_time_sec', dir: 'desc' }} onRowClick={(r) => navigate(`/reports/${r.report_id}`)}
           toolbar={<Segmented options={FILTERS} value={filter} onChange={setFilter} />} />
       </Panel>
+      </Group>
     </>
   );
 }

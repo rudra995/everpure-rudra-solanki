@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { LogIn, RefreshCw, ScrollText, ShieldAlert, ShieldX } from 'lucide-react';
 import { useTheme } from '../theme.jsx';
 import { useApi } from '../api/useApi.js';
-import { Badge, ErrorState, Loading, PageHeader, Panel, Segmented, Stat } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, PageHeader, Panel, Segmented, Stat } from '../components/ui.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { fmt } from '../format.js';
 
@@ -38,8 +38,9 @@ export default function Audit() {
         subtitle="Append-only record of sign-ins, denied requests and every action that changes state (claims, approvals, acknowledgements, replay control)."
         actions={<button type="button" className="btn" onClick={reload}><RefreshCw size={14} />Refresh</button>} />
 
+      <Group title="Audit trail">
       <div className="grid g-4">
-        <Stat tone="accent" icon={ScrollText} label="Events recorded" value={fmt.num(entries.length)} sub="Kept in memory since server start" />
+        <Stat variant="accent" tone="accent" icon={ScrollText} label="Events recorded" value={fmt.num(entries.length)} sub="Kept in memory since server start" />
         <Stat tone="good" icon={LogIn} label="Sign-ins" value={n((e) => e.event === 'auth.login' && e.outcome === 'success')} sub="Successful logins" />
         <Stat tone="critical" icon={ShieldX} label="Access denied" value={n((e) => e.outcome === 'denied')} sub="403s from the RBAC checks" />
         <Stat tone="warning" icon={ShieldAlert} label="Failed sign-ins" value={n((e) => e.event === 'auth.login' && e.outcome === 'failure')} sub="Wrong email or password" />
@@ -51,6 +52,7 @@ export default function Audit() {
             { value: '', label: 'All' }, { value: 'success', label: 'Success' }, { value: 'denied', label: 'Denied' }, { value: 'failure', label: 'Failure' },
           ]} />} />
       </Panel>
+      </Group>
     </>
   );
 }

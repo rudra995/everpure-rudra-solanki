@@ -10,7 +10,7 @@ import { useLive } from '../live/LiveContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { api } from '../api/http.js';
 import { useTheme, SEVERITY_KEY } from '../theme.jsx';
-import { Empty, Notice, PageHeader, Panel, Segmented, SeverityBadge, Stat, Legend } from '../components/ui.jsx';
+import { Group, Empty, Notice, PageHeader, Panel, Segmented, SeverityBadge, Stat, Legend } from '../components/ui.jsx';
 import { ChartTooltip, axis } from '../components/charts.jsx';
 import { AlertIcon, AlertRow } from '../components/LiveWidgets.jsx';
 import { fmt } from '../format.js';
@@ -101,6 +101,7 @@ export default function Alerts() {
           </>
         )} />
 
+      <Group title="Session" subtitle="Connection, replay and alert counts">
       <div className="grid g-main">
         <Panel title="WebSocket session" icon={Radio} iconColor={connected ? c.good : c.critical}
           subtitle="Socket.IO connection authenticated with your JWT at the handshake. The server only emits to the rooms your role joins.">
@@ -131,12 +132,14 @@ export default function Alerts() {
       </div>
 
       <div className="grid g-4 mt">
-        <Stat tone="accent" icon={Bell} label="Alerts received live" value={fmt.num(live.received)} sub="This browser session" />
+        <Stat variant="accent" tone="accent" icon={Bell} label="Alerts received live" value={fmt.num(live.received)} sub="This browser session" />
         <Stat tone="latency" icon={Clock} label="Latency breaches" value={fmt.num(s?.LATENCY_BREACH)} sub={stats.data?.scope === 'all' ? 'Server total since start' : 'Your reports'} />
         <Stat tone="refresh" icon={RefreshCw} label="Refresh failures" value={fmt.num(s?.REFRESH_FAILURE)} sub="FAILED or TIMED_OUT" />
         <Stat tone="warning" icon={Siren} label="Unacknowledged" value={fmt.num(s?.unacknowledged)} sub="Waiting for an owner or admin" />
       </div>
+      </Group>
 
+      <Group title="Alert activity" subtitle="Rate, severity and noisiest reports">
       <div className="grid g-main mt">
         <Panel title="Alert rate" subtitle="Alerts received per 5 seconds, last 2 minutes · updates live">
           <ResponsiveContainer width="100%" height={220}>
@@ -172,7 +175,9 @@ export default function Alerts() {
           </div>
         </Panel>
       </div>
+      </Group>
 
+      <Group title="Alert stream">
       <Panel className="mt" flush bordered
         title={view === 'events' ? `Alert stream · ${fmt.num(filtered.length)} events` : `Grouped · ${groups.length} reports`}
         subtitle="Newest first. Grouping changes the display only; every event is still delivered and counted."
@@ -225,6 +230,7 @@ export default function Alerts() {
           CRITICAL over 45 s) help people prioritise. UNKNOWN refresh status means &quot;needs review&quot; and does not alert.
         </Notice>
       </div>
+      </Group>
     </>
   );
 }

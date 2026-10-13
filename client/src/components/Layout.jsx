@@ -1,23 +1,53 @@
-// App shell: Staggered Menu (left, hamburger; only pages this role may open) with live
-// connection status, and a top bar with breadcrumb, data source, alert bell, theme toggle and user.
+// App shell: a dock on the left (icon rail that expands on hover to show section names;
+// only pages this role may open), and a top bar of pills: brand, current page, data source,
+// live status, telemetry replay, alerts bell and the signed-in user.
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Activity, Bell, ChevronRight, Database, LogOut, Moon, Siren, Sun, X } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useLive } from '../live/LiveContext.jsx';
 import { useTheme, SEVERITY_KEY } from '../theme.jsx';
 import { NAV } from '../nav.js';
 import { api } from '../api/http.js';
-import StaggeredMenu from './StaggeredMenu.jsx';
 import { fmt } from '../format.js';
 
 const initials = (name = '') => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 const SOURCE_LABEL = { duckdb: 'DuckDB', snowflake: 'Snowflake' };
 
+function Dock({ items, theme, setTheme, onSignOut }) {
+  return (
+    <nav className="dock" aria-label="Main navigation">
+      <div className="dock-group">
+        <button type="button" className={`dock-item ${theme === 'light' ? 'on' : ''}`} onClick={() => setTheme('light')} title="Light theme">
+          <Sun size={18} /><span className="dock-label">Light</span>
+        </button>
+        <button type="button" className={`dock-item ${theme === 'dark' ? 'on' : ''}`} onClick={() => setTheme('dark')} title="Dark theme">
+          <Moon size={18} /><span className="dock-label">Dark</span>
+        </button>
+      </div>
+      <div className="dock-group">
+        <div className="dock-head">Sections</div>
+        {items.map(({ to, label, icon: Icon, badge }) => (
+          <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`} title={label}>
+            <Icon size={18} /><span className="dock-label">{label}</span>
+            {badge ? <span className="dock-badge">{badge}</span> : null}
+          </NavLink>
+        ))}
+      </div>
+      <div className="dock-spacer" />
+      <div className="dock-group">
+        <button type="button" className="dock-item" onClick={onSignOut} title="Sign out">
+          <LogOut size={18} /><span className="dock-label">Sign out</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 export default function Layout() {
   const { user, can, logout } = useAuth();
   const live = useLive();
-  const { theme, toggle, c } = useTheme();
+  const { theme, setTheme, c } = useTheme();
   const location = useLocation();
   const [source, setSource] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
@@ -33,39 +63,25 @@ export default function Layout() {
   const current = NAV.find((n) => (n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to)));
   const crumb = location.pathname.startsWith('/reports/') ? `Report ${location.pathname.split('/')[2]}` : current?.label ?? 'Overview';
   const sim = live.simulator;
-  const progress = sim?.last_seq ? (sim.last_seq / 20) * 100 : 0;
-  const isActive = (to) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
   const items = NAV.filter((n) => !n.perm || can(n.perm)).map((n) => ({
-    ...n, active: isActive(n.to),
-    badge: n.badge === 'alerts' && live.unseen > 0 ? (live.unseen > 99 ? '99+' : live.unseen) : null,
+    ...n, badge: n.badge === 'alerts' && live.unseen > 0 ? (live.unseen > 99 ? '99+' : live.unseen) : null,
   }));
 
   return (
     <div className="shell">
-      <StaggeredMenu
-        items={items}
-        colors={['#272a63', '#4f52c9']}
-        accentColor={c.accent}
-        footer={(
-          <div className="sidebar-card" style={{ marginTop: 0 }}>
-            <div className="kv"><span>WebSocket</span><span className="row" style={{ gap: 6 }}><span className={`live-dot ${live.connected ? 'on' : ''}`} /><b>{live.connected ? 'Live' : 'Offline'}</b></span></div>
-            <div className="kv"><span>Telemetry replay</span><b>{sim?.running ? (sim.last_seq ? `#${sim.last_seq} of 20` : 'Running') : 'Paused'}</b></div>
-            <div className="progress"><span style={{ width: `${progress}%` }} /></div>
-            <div className="kv"><span>Data source</span><b>{SOURCE_LABEL[source] ?? '—'}</b></div>
-          </div>
-        )}
-      />
+      <Dock items={items} theme={theme} setTheme={setTheme} onSignOut={logout} />
 
       <div className="main">
         <header className="topbar">
-          <Link to="/" className="brand" style={{ padding: 0, textDecoration: 'none', color: 'inherit' }}>
-            <div className="brand-mark"><Activity size={18} color="#fff" /></div>
+          <Link to="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="brand-mark"><Activity size={17} color="#fff" /></div>
             <div><div className="brand-name">Pure Insights</div><div className="brand-sub">Command Centre</div></div>
           </Link>
-          <div className="crumbs" style={{ paddingLeft: 14, borderLeft: '1px solid var(--border)' }}><ChevronRight size={14} /><b>{crumb}</b></div>
+          <div className="crumbs"><span>Command Centre</span><ChevronRight size={14} /><b>{crumb}</b></div>
           <div className="spacer" />
           <span className="pill"><Database size={13} />Source <b>{SOURCE_LABEL[source] ?? '—'}</b></span>
           <span className="pill"><span className={`live-dot ${live.connected ? 'on' : ''}`} />{live.connected ? 'Streaming' : 'Reconnecting'}</span>
+          <span className="pill" title="Telemetry replay of the 20 snapshots">Replay <b>{sim?.running ? (sim.last_seq ? `#${sim.last_seq} / 20` : 'running') : 'paused'}</b></span>
 
           {live.receivesAlerts && (
             <div style={{ position: 'relative' }} ref={bellRef}>
@@ -94,16 +110,12 @@ export default function Layout() {
             </div>
           )}
 
-          <button type="button" className="icon-btn" onClick={toggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <div className="row" style={{ gap: 10, paddingLeft: 6, borderLeft: '1px solid var(--border)' }}>
+          <div className="row user-pill" style={{ gap: 10 }}>
             <div className="avatar">{initials(user.name)}</div>
-            <div style={{ lineHeight: 1.2 }}>
+            <div style={{ lineHeight: 1.2, paddingRight: 8 }}>
               <div className="small strong">{user.name}</div>
               <div className="xs faint">{user.roleLabel}</div>
             </div>
-            <button type="button" className="btn ghost sm" onClick={logout} title="Sign out"><LogOut size={15} /></button>
           </div>
         </header>
         <main className="content"><Outlet /></main>

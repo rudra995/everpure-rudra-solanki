@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { CheckCircle2, Database, MailX, MinusCircle, ShieldCheck, XCircle } from 'lucide-react';
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
-import { Badge, ErrorState, Loading, PageHeader, Panel, Stat } from '../components/ui.jsx';
+import { Group, Badge, ErrorState, Loading, PageHeader, Panel, Stat } from '../components/ui.jsx';
 import { ChartTooltip, axis } from '../components/charts.jsx';
 import { useTheme } from '../theme.jsx';
 import DataTable from '../components/DataTable.jsx';
@@ -66,8 +66,9 @@ export default function DataQuality() {
       <PageHeader eyebrow="Validation · defects found in code" title="Data quality"
         subtitle="Every rule from the cleaning pipeline, how many rows it caught and what was done. No row is ever dropped; each finding is logged with its original value." />
 
+      <Group title="Defects found" subtitle="Rows caught per cleaning rule and the action taken">
       <div className="grid g-4">
-        <Stat tone="accent" icon={Database} label="Source rows" value={fmt.num(count('raw_rows'))} sub="100 reports × 20 snapshots, none dropped" />
+        <Stat variant="accent" tone="accent" icon={Database} label="Source rows" value={fmt.num(count('raw_rows'))} sub="100 reports × 20 snapshots, none dropped" />
         <Stat tone="ownership" icon={MailX} label="Orphaned records" value={count('orphaned_owner_nan') + count('orphaned_owner_sentinel')} sub={`${count('orphaned_owner_nan')} NaN + ${count('orphaned_owner_sentinel')} placeholder`} />
         <Stat tone="critical" icon={MinusCircle} label="Negative credit rows" value={count('negative_credits')} sub="Excluded from all cost figures" />
         <Stat tone={passed ? 'good' : 'critical'} icon={ShieldCheck} label="Reconciliation" value={`${passing} / ${reconciliation.length}`} sub={passed ? 'All checks pass' : 'Some checks fail'} />
@@ -92,7 +93,9 @@ export default function DataQuality() {
           <DataTable rows={rules.filter((r) => sec.match(r.category)).map((r) => ({ ...r, id: r.rule }))} columns={ruleColumns} pageSize={20} />
         </Panel>
       ))}
+      </Group>
 
+      <Group title="Reconciliation" subtitle="Raw vs staging vs cost marts">
       <Panel className="mt" bordered title="Reconciliation checks" subtitle="Computed inside the SQL suite: raw vs staging vs marts. The same numbers are also checked against pandas and Snowflake (analysis/reconciliation.md)." flush>
         <table className="table">
           <thead><tr><th>#</th><th>Check</th><th className="right">Value A</th><th className="right">Value B</th><th className="right">Difference</th><th>Result</th></tr></thead>
@@ -112,6 +115,7 @@ export default function DataQuality() {
           </tbody>
         </table>
       </Panel>
+      </Group>
 
       {can(P.DQ_READ_ISSUES) && (
         <Panel className="mt" bordered title="Issue log" subtitle="One row per finding, with the original source value. Admin only: it contains raw owner emails." flush>
