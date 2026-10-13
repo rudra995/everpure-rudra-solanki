@@ -47,6 +47,12 @@ export async function init() {
 // DuckDB returns BIGINT as JS BigInt and dates/timestamps as objects; make everything JSON-safe.
 function toPlain(value) {
   if (typeof value === 'bigint') return Number(value);
+  // DATE/TIMESTAMP arrive as JS Dates; String(date) would give a local-time string
+  // ("Wed Jan 01 2025 05:30 GMT+0530"). Use ISO, and plain YYYY-MM-DD for dates (as Snowflake does).
+  if (value instanceof Date) {
+    const iso = value.toISOString();
+    return iso.endsWith('T00:00:00.000Z') ? iso.slice(0, 10) : iso;
+  }
   if (value && typeof value === 'object' && typeof value.toString === 'function' && !Array.isArray(value)) {
     return value.toString();
   }

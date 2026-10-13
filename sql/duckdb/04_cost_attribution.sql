@@ -172,7 +172,9 @@ SELECT
     MAX_BY(is_orphaned, snapshot_seq)                           AS currently_orphaned,
     COUNT_IF(is_orphaned)                                       AS orphaned_snapshots,
     AVG(avg_load_time_sec)                                      AS avg_load_time_sec,
-    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY avg_load_time_sec) AS p95_load_time_sec,
+    -- Cast to DOUBLE: on a DECIMAL(6,1) column DuckDB's PERCENTILE_CONT keeps scale 1 and
+    -- truncates the interpolated value (46.185 -> 46.1). Snowflake and numpy give 46.185.
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY avg_load_time_sec::DOUBLE) AS p95_load_time_sec,
     COUNT_IF(latency_breach) / COUNT(*)                         AS latency_breach_rate,
     COUNT_IF(refresh_failed) / COUNT(*)                         AS refresh_failure_rate,
     COUNT_IF(refresh_needs_review)                              AS unknown_status_snapshots,
