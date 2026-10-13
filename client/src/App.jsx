@@ -16,10 +16,11 @@ import Alerts from './pages/Alerts.jsx';
 import Orphaned from './pages/Orphaned.jsx';
 import Cost from './pages/Cost.jsx';
 import DataQuality from './pages/DataQuality.jsx';
+import Audit from './pages/Audit.jsx';
 
 const PAGES = {
   '/': Overview, '/health': Health, '/alerts': Alerts, '/orphaned': Orphaned,
-  '/cost': Cost, '/data-quality': DataQuality,
+  '/cost': Cost, '/data-quality': DataQuality, '/audit': Audit,
 };
 
 function Guard({ perm, children }) {
