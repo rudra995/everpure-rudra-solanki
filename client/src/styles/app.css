@@ -62,28 +62,28 @@
   --border-strong: rgba(255, 255, 255, 0.13);
   --grid: #2a2a28;
   --text: #f2f2ef;
-  --text-2: #bdbdb6;
-  --text-3: #8a8a83;
+  --text-2: #d6d6d0;
+  --text-3: #a8a8a1;
   --hover: rgba(255, 255, 255, 0.05);
-  --ink: #eeeeea;
+  --ink: #f2f2ee;
   --on-ink: #1a1a19;
 
-  --accent: #ff7a45;
-  --accent-2: #ffa07a;
-  --accent-soft: rgba(255, 122, 69, 0.16);
+  --accent: #f05a28;
+  --accent-2: #ff7a45;
+  --accent-soft: rgba(240, 90, 40, 0.18);
 
-  --m-snowflake: #eeeeea;
-  --m-aws: #ff7a45;
-  --m-usage: #8f8f88;
-  --m-ownership: #ff7a45;
-  --m-refresh: #eeeeea;
-  --m-latency: #ff7a45;
+  --m-snowflake: #f2f2ee;
+  --m-aws: #f05a28;
+  --m-usage: #cfcfc8;
+  --m-ownership: #f05a28;
+  --m-refresh: #f2f2ee;
+  --m-latency: #f05a28;
 
   --good: #45b97a;
   --warning: #f5c04a;
-  --serious: #ff8a4c;
+  --serious: #f07a32;
   --critical: #ef5a5a;
-  --unknown: #5f5f59;
+  --unknown: #a3a39c;
 
   --shadow: none;
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
@@ -525,7 +525,6 @@ table.table { width: 100%; border-collapse: collapse; }
   transition: width 0.22s ease, box-shadow 0.22s ease;
 }
 .sidebar:hover { width: 240px; box-shadow: 18px 0 48px rgba(0, 0, 0, 0.22); }
-[data-theme="dark"] .sidebar { background: #0b0b0a; border-right: 1px solid var(--border); }
 .side-logo { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; padding: 2px 0 6px; }
 .side-logo:hover { text-decoration: none; }
 .side-logo-mark { width: 52px; height: 52px; flex: none; border-radius: 16px; display: grid; place-items: center; background: #f6e6d4; color: #1b1b1a; }
@@ -572,15 +571,8 @@ table.table { width: 100%; border-collapse: collapse; }
 [data-theme="dark"] .hero .hero-label, [data-theme="dark"] .hero .hero-eq, [data-theme="dark"] .hero .legend { color: rgba(27, 27, 26, 0.65); }
 [data-theme="dark"] .hero .hero-eq b, [data-theme="dark"] .hero .legend b { color: #1b1b1a; }
 [data-theme="dark"] .hero .btn { background: #1b1b1a; color: #f2f2ef; border-color: #1b1b1a; }
-[data-theme="dark"] .stat.accent-tile { background: linear-gradient(150deg, #ffa07a, #ff7a45); color: #1b1b1a; }
-[data-theme="dark"] .stat.accent-tile .stat-top, [data-theme="dark"] .stat.accent-tile .stat-sub, [data-theme="dark"] .stat.accent-tile .stat-value small { color: rgba(27, 27, 26, 0.72); }
-[data-theme="dark"] .stat.accent-tile .chip { background: rgba(27, 27, 26, 0.12) !important; color: #1b1b1a !important; }
-[data-theme="dark"] .sidebar { background: #f2f2ef; color: #1b1b1a; border-right: none; }
-[data-theme="dark"] .side-item { color: #6f6f69; }
-[data-theme="dark"] .side-item:hover, [data-theme="dark"] .side-item.active { color: #1b1b1a; background: rgba(0, 0, 0, 0.06); }
-[data-theme="dark"] .side-text small { color: #77776f; }
-[data-theme="dark"] .side-foot { border-top-color: rgba(0, 0, 0, 0.08); }
-[data-theme="dark"] .side-logo-mark { background: #1b1b1a; color: #f6e6d4; }
+/* dark mode: the orange tile keeps the light-mode orange; the sidebar stays black with a hairline */
+[data-theme="dark"] .sidebar { background: #0b0b0a; color: #f2f2ef; border-right: 1px solid rgba(255, 255, 255, 0.08); }
 
 /* donut: big ring, compact legend underneath */
 .donut { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 4px; }
@@ -605,7 +597,11 @@ table.table { width: 100%; border-collapse: collapse; }
 .demo-user { border: none; background: var(--panel); border-radius: 18px; }
 .demo-user:hover { box-shadow: 0 0 0 2px var(--accent); }
 .role-ico { border-radius: 50%; }
-[data-theme="dark"] .login-side { background: #f2f2ef; color: #1b1b1a; }
-[data-theme="dark"] .login-side p, [data-theme="dark"] .login-feat { color: #5f5f5a; }
-[data-theme="dark"] .login-feat { background: rgba(0, 0, 0, 0.04); border-color: rgba(0, 0, 0, 0.08); }
-[data-theme="dark"] .login-feat b { color: #1b1b1a; }
+[data-theme="dark"] .login-side { background: #0b0b0a; border-right: 1px solid rgba(255, 255, 255, 0.08); }
+
+/* LIVE tag on the Live operations item */
+.side-live { position: absolute; top: 5px; left: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; line-height: 1.5; }
+.side-live::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #fff; animation: pulse-white 1.6s infinite; }
+@keyframes pulse-white { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.sidebar:hover .side-live { position: static; margin-left: auto; font-size: 10px; padding: 2px 7px; }

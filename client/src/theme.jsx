@@ -17,10 +17,10 @@ const PALETTE = {
     grid: '#ececea', axis: '#9a9a94', text: '#1d1d1b', surface: '#fbfbfa', accent: '#f05a28', barTop: '#ff8a5c',
   },
   dark: {
-    ink: '#eeeeea', orange: '#ff7a45', peach: '#f0a57d', gray: '#8f8f88',
-    snowflake: '#eeeeea', aws: '#ff7a45', latency: '#ff7a45', refresh: '#eeeeea', ownership: '#ff7a45', usage: '#8f8f88',
-    good: '#45b97a', warning: '#f5c04a', serious: '#ff8a4c', critical: '#ef5a5a', unknown: '#5f5f59',
-    grid: '#2a2a28', axis: '#8a8a83', text: '#f2f2ef', surface: '#1a1a19', accent: '#ff7a45', barTop: '#ffa07a',
+    ink: '#f2f2ee', orange: '#f05a28', peach: '#f4a77c', gray: '#cfcfc8',
+    snowflake: '#f2f2ee', aws: '#f05a28', latency: '#f05a28', refresh: '#f2f2ee', ownership: '#f05a28', usage: '#cfcfc8',
+    good: '#45b97a', warning: '#f5c04a', serious: '#f07a32', critical: '#ef5a5a', unknown: '#a3a39c',
+    grid: '#2c2c2a', axis: '#a3a39c', text: '#f4f4f1', surface: '#1a1a19', accent: '#f05a28', barTop: '#ff8a5c',
   },
 };
 

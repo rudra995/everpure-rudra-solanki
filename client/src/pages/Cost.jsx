@@ -276,9 +276,9 @@ export default function Cost() {
         {all && showback.data && (
           <Panel title="Snowflake credits by owner" subtitle="Showback: canonical owner per report. Emails masked without PII access.">
             <ResponsiveContainer width="100%" height={300}>
-              <Treemap data={showback.data.owners.map((o, i) => ({ name: o.canonical_owner, size: n(o.credit_cost_usd), reports: o.reports_owned, i }))}
+              <Treemap data={[...showback.data.owners].sort((a, b) => n(b.credit_cost_usd) - n(a.credit_cost_usd)).map((o, i) => ({ name: o.canonical_owner, size: n(o.credit_cost_usd), reports: o.reports_owned, index: i }))}
                 dataKey="size" isAnimationActive={false} stroke="var(--panel)"
-                content={<TreeCell c={c} />}>
+                content={<TreeCell />}>
                 <Tooltip content={({ active, payload }) => (active && payload?.length ? (
                   <div className="tt"><div className="tt-title">{payload[0].payload.name}</div>
                     <div className="tt-row"><span>Snowflake cost</span><b>{fmt.usd(payload[0].payload.size, 0)}</b></div>
@@ -333,15 +333,19 @@ export default function Cost() {
 }
 
 // Treemap tile: one blue (Snowflake) tile per owner, shade by size order.
-function TreeCell({ x, y, width, height, name, size, depth, c }) {
+// Treemap tile: a single orange ramp, darkest for the largest spend (sequential = one hue).
+const TREE_RAMP = ['#d9481a', '#f05a28', '#f26b3a', '#f47d50', '#f69066', '#f8a37e', '#fab696', '#fcc9b0'];
+function TreeCell({ x, y, width, height, name, size, depth, index }) {
   if (depth !== 1 || width < 2) return null;
+  const fill = TREE_RAMP[Math.min(index ?? 0, TREE_RAMP.length - 1)];
+  const dark = (index ?? 0) < 4;
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} rx={6} fill={c.snowflake} fillOpacity={0.35 + Math.min(0.55, size / 900000)} stroke={c.surface} strokeWidth={2} />
-      {width > 90 && height > 36 && (
+      <rect x={x} y={y} width={width} height={height} rx={8} fill={fill} stroke="var(--tile)" strokeWidth={3} />
+      {width > 80 && height > 36 && (
         <>
-          <text x={x + 9} y={y + 19} fill="#fff" stroke="none" fontSize={11.5} fontWeight={600}>{String(name).replace('@company.com', '')}</text>
-          <text x={x + 9} y={y + 34} fill="rgba(255,255,255,0.8)" stroke="none" fontSize={11}>{fmt.usdCompact(size)}</text>
+          <text x={x + 10} y={y + 20} fill={dark ? '#ffffff' : '#3a1a0c'} stroke="none" fontSize={12} fontWeight={650}>{String(name).replace('@company.com', '')}</text>
+          <text x={x + 10} y={y + 36} fill={dark ? 'rgba(255,255,255,0.85)' : 'rgba(58,26,12,0.8)'} stroke="none" fontSize={11}>{fmt.usdCompact(size)}</text>
         </>
       )}
     </g>

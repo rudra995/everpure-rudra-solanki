@@ -8,10 +8,10 @@ import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 
 const DEMO_USERS = [
-  { id: 'u-admin', name: 'Asha Admin', email: 'admin@company.com', groups: ['pi-platform-admins'] },
-  { id: 'u-finops', name: 'Farhan FinOps', email: 'finops@company.com', groups: ['pi-finops'] },
-  { id: 'u-owner', name: 'Rohan Owner', email: 'user_3@company.com', groups: ['pi-report-owners'] },
-  { id: 'u-viewer', name: 'Vikram Viewer', email: 'viewer@company.com', groups: ['pi-business-users'] },
+  { id: 'u-admin', name: 'Asha Mehta', email: 'admin@company.com', groups: ['pi-platform-admins'] },
+  { id: 'u-finops', name: 'Farhan Qureshi', email: 'finops@company.com', groups: ['pi-finops'] },
+  { id: 'u-owner', name: 'Rohan Iyer', email: 'user_3@company.com', groups: ['pi-report-owners'] },
+  { id: 'u-viewer', name: 'Vikram Nair', email: 'viewer@company.com', groups: ['pi-business-users'] },
 ];
 
 const passwordHash = bcrypt.hashSync(config.demoPassword, 10);

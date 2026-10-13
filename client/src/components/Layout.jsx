@@ -25,11 +25,11 @@ function Sidebar({ items, user, onSignOut }) {
         <span className="side-text"><b>Pure Insights</b><small>Command Centre</small></span>
       </Link>
       <div className="side-items">
-        {items.map(({ to, label, icon: Icon, badge }) => (
+        {items.map(({ to, label, icon: Icon, live }) => (
           <NavLink key={to} to={to} end={to === '/'} onClick={blur} title={label}
             className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
             <Icon size={19} /><span className="side-text">{label}</span>
-            {badge ? <span className="side-badge">{badge}</span> : null}
+            {live ? <span className="side-live" title="Real-time feed">LIVE</span> : null}
           </NavLink>
         ))}
       </div>
@@ -65,9 +65,7 @@ export default function Layout() {
   const current = NAV.find((n) => (n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to)));
   const crumb = location.pathname.startsWith('/reports/') ? `Report ${location.pathname.split('/')[2]}` : current?.label ?? 'Overview';
   const sim = live.simulator;
-  const items = NAV.filter((n) => !n.perm || can(n.perm)).map((n) => ({
-    ...n, badge: n.badge === 'alerts' && live.unseen > 0 ? (live.unseen > 99 ? '99+' : live.unseen) : null,
-  }));
+  const items = NAV.filter((n) => !n.perm || can(n.perm)).map((n) => ({ ...n, live: n.badge === 'alerts' && live.connected }));
 
   return (
     <div className="shell">
@@ -79,7 +77,7 @@ export default function Layout() {
           <div className="crumbs"><span>Command Centre</span><ChevronRight size={14} /><b>{crumb}</b></div>
           <div className="spacer" />
           <span className="pill"><Database size={13} />Source <b>{SOURCE_LABEL[source] ?? '—'}</b></span>
-          <span className="pill"><span className={`live-dot ${live.connected ? 'on' : ''}`} />{live.connected ? 'Streaming' : 'Reconnecting'}</span>
+          <span className="pill" title="Alerts and telemetry are pushed over a Socket.IO WebSocket"><span className={`live-dot ${live.connected ? 'on' : ''}`} />{live.connected ? <>Streaming via <b>WebSocket</b></> : 'WebSocket reconnecting'}</span>
           <span className="pill" title="Telemetry replay of the 20 snapshots">Replay <b>{sim?.running ? (sim.last_seq ? `#${sim.last_seq} / 20` : 'running') : 'paused'}</b></span>
 
           {live.receivesAlerts && (
