@@ -2,13 +2,14 @@
 // the numbers are scoped by the server (a Report Owner only ever sees their own reports).
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CheckCircle2, Clock, Cloud, Eye, FileWarning, Gauge, RefreshCw, ShieldCheck, Snowflake, XCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { useLive } from '../live/LiveContext.jsx';
 import { useTheme, SEVERITY_KEY, STATUS_KEY } from '../theme.jsx';
 import { Group, ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
-import { Heatmap, heatLegend } from '../components/charts.jsx';
+import { ChartTooltip, Donut, Heatmap, axis, heatLegend } from '../components/charts.jsx';
 import { AlertStream, TelemetryTape } from '../components/LiveWidgets.jsx';
 import { bySnapshot } from '../data.js';
 import { fmt } from '../format.js';
@@ -53,12 +54,8 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader eyebrow={scopeOwn ? 'Your reports' : 'Platform overview'}
-        title={`${greeting()}, ${user.name.split(' ')[0]}`}
-        subtitle={scopeOwn
-          ? `Health, cost and alerts for the ${reports.length} reports you own.`
-          : 'Health of all 100 portal reports. "Now" means each report\'s latest snapshot (20 of 20).'}
-        actions={live.simulator?.running && <span className="pill"><span className="live-dot on" />Replaying snapshot <b>#{live.simulator.last_seq ?? '–'}</b> · cycle {live.simulator.cycle}</span>} />
+      <PageHeader
+        title={`${greeting()}, ${user.name.split(' ')[0]}`} />
 
       <Group title="Platform status" subtitle="Latest snapshot of every report">
       <div className="grid g-6">
@@ -77,7 +74,7 @@ export default function Overview() {
           actions={<Segmented value={metric} onChange={setMetric} options={[
             { value: 'latency', label: 'Latency', color: c.latency }, { value: 'refresh', label: 'Refresh', color: c.refresh },
             { value: 'ownership', label: 'Ownership', color: c.ownership }]} />}>
-          {snapsQ.loading ? <div className="skeleton" style={{ height: 260 }} /> : <Heatmap rows={snaps} metric={metric} rowHeight={17} />}
+          {snapsQ.loading ? <div className="skeleton" style={{ height: 260 }} /> : <Heatmap rows={snaps} metric={metric} />}
           <div style={{ marginTop: 12 }}><Legend items={heatLegend(metric, c)} /></div>
         </Panel>
 
@@ -87,13 +84,13 @@ export default function Overview() {
               <div className="hero-label">{scopeOwn ? 'Your cost per active view' : 'Cost per active user view'}</div>
               <div className="hero-value">{fmt.usd(cost.totalPV, 4)}</div>
               <div className="hero-eq">
-                <span className="row" style={{ gap: 5 }}><Snowflake size={14} color={c.snowflake} /><b>{fmt.usd(cost.snowPV, 4)}</b></span>
+                <span className="row" style={{ gap: 5 }}><Snowflake size={14} color={'#e9e9e4'} /><b>{fmt.usd(cost.snowPV, 4)}</b></span>
                 <span>+</span>
                 <span className="row" style={{ gap: 5 }}><Cloud size={14} color={c.aws} /><b>{fmt.usd(cost.totalPV - cost.snowPV, 4)}</b></span>
               </div>
               <div style={{ marginTop: 16 }}>
                 <SplitBar parts={[
-                  { label: 'Snowflake', value: cost.snow, color: c.snowflake, display: fmt.usdCompact(cost.snow) },
+                  { label: 'Snowflake', value: cost.snow, color: '#e9e9e4', display: fmt.usdCompact(cost.snow) },
                   { label: 'AWS', value: cost.aws, color: c.aws, display: fmt.usdCompact(cost.aws) },
                 ]} />
               </div>
@@ -115,6 +112,56 @@ export default function Overview() {
             </div>
           </Panel>
         </div>
+      </div>
+      </Group>
+
+      <Group title="Trends across snapshots" subtitle="Snapshots 1–20 in file order (the data has no dates)">
+      <div className="grid g-3">
+        {can([P.COST_READ_ALL, P.COST_READ_OWN]) ? (
+          <Panel title="Spend by snapshot" subtitle="Snowflake compute + AWS hosting">
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={series} margin={{ top: 6, right: 4, bottom: 0, left: 2 }} barCategoryGap="22%">
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="seq" {...axis(c)} interval={1} />
+                <YAxis {...axis(c)} axisLine={false} width={46} tickFormatter={fmt.usdCompact} />
+                <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ snowflake: 'Snowflake', aws: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
+                <Bar dataKey="snowflake" stackId="a" fill={c.snowflake} />
+                <Bar dataKey="aws" stackId="a" fill="url(#pi-hatch)" radius={[5, 5, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <Legend items={[{ label: 'Snowflake', color: c.snowflake }, { label: 'AWS', color: c.aws }]} />
+          </Panel>
+        ) : (
+          <Panel title="Refresh failures by snapshot" subtitle="Failed + timed out">
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={series} margin={{ top: 6, right: 4, bottom: 0, left: -18 }} barCategoryGap="22%">
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="seq" {...axis(c)} interval={1} />
+                <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
+                <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ FAILED: 'Failed', TIMED_OUT: 'Timed out' }} />} />
+                <Bar dataKey="FAILED" stackId="a" fill={c.ink} />
+                <Bar dataKey="TIMED_OUT" stackId="a" fill="url(#pi-hatch)" radius={[5, 5, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Panel>
+        )}
+        <Panel title="Average load time" subtitle="Mean across reports · dashed line = 15 s threshold">
+          <ResponsiveContainer width="100%" height={210}>
+            <AreaChart data={series} margin={{ top: 6, right: 4, bottom: 0, left: -18 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="seq" {...axis(c)} interval={1} />
+              <YAxis {...axis(c)} axisLine={false} unit="s" domain={[0, 45]} />
+              <Tooltip content={<ChartTooltip title={(l) => `Snapshot ${l}`} names={{ avgLatency: 'Avg load time' }} format={(v) => `${v.toFixed(1)} s`} />} />
+              <ReferenceLine y={15} stroke={c.ink} strokeDasharray="4 4" strokeOpacity={0.5} />
+              <Area type="monotone" dataKey="avgLatency" stroke={c.orange} strokeWidth={2.5} fill="url(#pi-grad-orange)" dot={{ r: 3, fill: c.surface, stroke: c.orange, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="footnote">Flat around 28 s: no trend across snapshots in the source data.</div>
+        </Panel>
+        <Panel title="Severity mix" subtitle="Latest snapshot per report">
+          <Donut centerLabel="reports" parts={['OK', 'WARNING', 'HIGH', 'CRITICAL'].map((s) => ({ label: { OK: '≤ 15 s', WARNING: '15–30 s', HIGH: '30–45 s', CRITICAL: '> 45 s' }[s], value: sev(s), color: c[SEVERITY_KEY[s]] }))} />
+          <div className="footnote">{sev('WARNING') + sev('HIGH') + sev('CRITICAL')} of {reports.length} reports are over the 15 s threshold now.</div>
+        </Panel>
       </div>
       </Group>
 

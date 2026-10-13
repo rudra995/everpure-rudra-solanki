@@ -1,12 +1,12 @@
 // System health (brief, Task 1): load latency and refresh reliability, per report and per snapshot.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AlertTriangle, Clock, HelpCircle, RefreshCw, Timer } from 'lucide-react';
 import { useApi } from '../api/useApi.js';
 import { useTheme, SEVERITY_KEY, STATUS_KEY } from '../theme.jsx';
 import { Group, Badge, ErrorState, Loading, PageHeader, Panel, Segmented, SeverityBadge, Stat, StatusBadge, Legend } from '../components/ui.jsx';
-import { ChartTooltip, Heatmap, axis, heatLegend } from '../components/charts.jsx';
+import { ChartTooltip, Donut, Heatmap, axis, heatLegend } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { bySnapshot, latencyHistogram } from '../data.js';
 import { fmt } from '../format.js';
@@ -36,6 +36,8 @@ export default function Health() {
   const rows = useMemo(() => reports.filter(MATCH[filter]), [reports, filter]);
   const series = useMemo(() => bySnapshot(snaps), [snaps]);
   const hist = useMemo(() => latencyHistogram(snaps), [snaps]);
+  const slowest = useMemo(() => [...reports].sort((a, b) => b.avg_load_time_sec - a.avg_load_time_sec).slice(0, 10), [reports]);
+  const breach = useMemo(() => series.map((x) => ({ ...x, breachPct: x.breachRate * 100 })), [series]);
 
   if (loading) return <Loading />;
   if (error) return <ErrorState error={error} />;
@@ -67,8 +69,7 @@ export default function Health() {
 
   return (
     <>
-      <PageHeader eyebrow="Task 1 · System health" title="System health"
-        subtitle={`Load latency and refresh reliability for ${data.scope === 'own' ? 'your' : 'all'} ${reports.length} reports across ${fmt.num(snaps.length)} snapshots. "Now" = snapshot 20.`} />
+      <PageHeader title="System health" />
 
       <Group title="Key metrics" subtitle="Across all snapshots">
       <div className="grid g-5">
@@ -113,6 +114,34 @@ export default function Health() {
             </BarChart>
           </ResponsiveContainer>
           <Legend items={['FAILED', 'TIMED_OUT', 'UNKNOWN'].map((s) => ({ label: s.replace('_', ' '), color: c[STATUS_KEY[s]] }))} />
+        </Panel>
+      </div>
+      <div className="grid g-3">
+        <Panel title="Slowest reports" subtitle="Average load time over 20 snapshots · click to open">
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={slowest} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap="24%">
+              <CartesianGrid horizontal={false} />
+              <XAxis type="number" {...axis(c)} unit="s" />
+              <YAxis type="category" dataKey="report_id" width={64} {...axis(c)} axisLine={false} interval={0} />
+              <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip names={{ avg_load_time_sec: 'Avg load time' }} format={(v) => `${Number(v).toFixed(1)} s`} />} />
+              <Bar dataKey="avg_load_time_sec" fill="url(#pi-bar-orange-h)" radius={[0, 6, 6, 0]} cursor="pointer" onClick={(d) => navigate(`/reports/${d.report_id}`)} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Panel>
+        <Panel title="Loads over 15 s, by snapshot" subtitle="Share of reports breaching the threshold">
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={breach} margin={{ top: 6, right: 4, bottom: 0, left: -14 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="seq" {...axis(c)} interval={1} />
+              <YAxis {...axis(c)} axisLine={false} unit="%" domain={[0, 100]} />
+              <Tooltip content={<ChartTooltip title={(l) => `Snapshot ${l}`} names={{ breachPct: 'Over 15 s' }} format={(v) => `${v.toFixed(0)}%`} />} />
+              <Area type="monotone" dataKey="breachPct" stroke={c.orange} strokeWidth={2.5} fill="url(#pi-grad-orange)" dot={{ r: 3, fill: c.surface, stroke: c.orange, strokeWidth: 2 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Panel>
+        <Panel title="Refresh outcomes" subtitle="All snapshots">
+          <Donut centerLabel="refreshes" parts={['SUCCESS', 'FAILED', 'TIMED_OUT', 'UNKNOWN'].map((st) => ({ label: { SUCCESS: 'Success', FAILED: 'Failed', TIMED_OUT: 'Timed out', UNKNOWN: 'Unknown' }[st], value: cnt((x) => x.last_refresh_status === st), color: c[STATUS_KEY[st]] }))} />
+          <div className="footnote">Failed and timed out raise alerts; unknown is "needs review".</div>
         </Panel>
       </div>
       </Group>

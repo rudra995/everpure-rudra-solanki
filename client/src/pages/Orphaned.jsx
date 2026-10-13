@@ -8,7 +8,7 @@ import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { api } from '../api/http.js';
 import { Group, Badge, ErrorState, Loading, Modal, Notice, PageHeader, Panel, Segmented, Stat, Empty, Legend, SplitBar } from '../components/ui.jsx';
-import { ChartTooltip, axis } from '../components/charts.jsx';
+import { ChartTooltip, Donut, axis } from '../components/charts.jsx';
 import { useTheme } from '../theme.jsx';
 import { bySnapshot } from '../data.js';
 import DataTable from '../components/DataTable.jsx';
@@ -37,6 +37,7 @@ export default function Orphaned() {
   const pendingFor = useMemo(() => new Set((claims.data?.claims ?? []).filter((c) => c.status === 'PENDING').map((c) => c.report_id)), [claims.data]);
   // Column: any cost visible (owners see it for their own rows). KPI: platform-wide total, cost:read:all only.
   const seesCost = reports.some((r) => r.orphaned_credit_cost_usd !== undefined);
+  const topOrphaned = useMemo(() => [...reports].sort((a, b) => b.orphaned_snapshots - a.orphaned_snapshots).slice(0, 10), [reports]);
   const seesAllCost = can(P.COST_READ_ALL);
 
   if (orphaned.loading) return <Loading />;
@@ -87,8 +88,7 @@ export default function Orphaned() {
 
   return (
     <>
-      <PageHeader eyebrow="Task 1 · Ownership governance" title="Orphaned reports"
-        subtitle="A record is orphaned when its owner email is missing (NaN) or the placeholder ORPHANED_REPORT. No report is orphaned in all 20 snapshots, so a report counts as currently orphaned when its latest snapshot has no owner." />
+      <PageHeader title="Orphaned reports" />
 
       <Group title="Ownership" subtitle="Orphaned records and reports">
       <div className="grid g-4">
@@ -109,7 +109,7 @@ export default function Orphaned() {
               <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ orphanNaN: 'Missing email (NaN)', orphanSentinel: 'ORPHANED_REPORT' }} />} />
               <Bar dataKey="orphanNaN" stackId="a" fill={c.ownership} />
-              <Bar dataKey="orphanSentinel" stackId="a" fill={c.aws} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="orphanSentinel" stackId="a" fill={c.refresh} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <Legend items={[{ label: 'Missing email (NaN)', color: c.ownership }, { label: 'ORPHANED_REPORT placeholder', color: c.aws }]} />
@@ -125,6 +125,25 @@ export default function Orphaned() {
             <dt>Reports orphaned now (snapshot 20)</dt><dd style={{ color: c.ownership, fontWeight: 600 }}>{s.reports_currently_orphaned}</dd>
             <dt>Owner emails per report in source</dt><dd>7 to 13</dd>
           </dl>
+        </Panel>
+      </div>
+      <div className="grid g-2">
+        <Panel title="Most often orphaned" subtitle="Snapshots without an owner, of 20">
+          <ResponsiveContainer width="100%" height={230}>
+            <BarChart data={topOrphaned} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap="24%">
+              <CartesianGrid horizontal={false} />
+              <XAxis type="number" {...axis(c)} allowDecimals={false} />
+              <YAxis type="category" dataKey="report_id" width={64} {...axis(c)} axisLine={false} interval={0} />
+              <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ missing_email_snapshots: 'Missing email', sentinel_snapshots: 'ORPHANED_REPORT' }} />} />
+              <Bar dataKey="sentinel_snapshots" stackId="a" fill={c.refresh} />
+              <Bar dataKey="missing_email_snapshots" stackId="a" fill={c.ownership} radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <Legend items={[{ label: 'Missing email', color: c.ownership }, { label: 'ORPHANED_REPORT', color: c.refresh }]} />
+        </Panel>
+        <Panel title="Orphan cause" subtitle="All orphaned records">
+          <Donut centerLabel="records" parts={[{ label: 'Missing email (NaN)', value: s.missing_email_records, color: c.ownership }, { label: 'ORPHANED_REPORT', value: s.sentinel_records, color: c.refresh }]} />
+          <div className="footnote">Rows are flagged and kept, never dropped.</div>
         </Panel>
       </div>
       </Group>

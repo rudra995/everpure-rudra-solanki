@@ -6,7 +6,7 @@ import { CheckCircle2, Database, MailX, MinusCircle, ShieldCheck, XCircle } from
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { Group, Badge, ErrorState, Loading, PageHeader, Panel, Stat } from '../components/ui.jsx';
-import { ChartTooltip, axis } from '../components/charts.jsx';
+import { ChartTooltip, Donut, axis } from '../components/charts.jsx';
 import { useTheme } from '../theme.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { fmt } from '../format.js';
@@ -63,8 +63,7 @@ export default function DataQuality() {
 
   return (
     <>
-      <PageHeader eyebrow="Validation · defects found in code" title="Data quality"
-        subtitle="Every rule from the cleaning pipeline, how many rows it caught and what was done. No row is ever dropped; each finding is logged with its original value." />
+      <PageHeader title="Data quality" />
 
       <Group title="Defects found" subtitle="Rows caught per cleaning rule and the action taken">
       <div className="grid g-4">
@@ -74,7 +73,8 @@ export default function DataQuality() {
         <Stat tone={passed ? 'good' : 'critical'} icon={ShieldCheck} label="Reconciliation" value={`${passing} / ${reconciliation.length}`} sub={passed ? 'All checks pass' : 'Some checks fail'} />
       </div>
 
-      <Panel className="mt" title="Rows caught per rule" subtitle="Brief defects (indigo), hidden issues found during validation (orange) and the refresh alert source (pink), out of 2,000 rows">
+      <div className="grid g-main">
+      <Panel title="Rows caught per rule" subtitle="Out of 2,000 rows · orange = brief defect, black = alert source, peach = hidden issue">
         <ResponsiveContainer width="100%" height={330}>
           <BarChart data={chartRules} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }} barCategoryGap="22%">
             <CartesianGrid horizontal={false} />
@@ -82,11 +82,21 @@ export default function DataQuality() {
             <YAxis type="category" dataKey="rule" width={220} {...axis(c)} axisLine={false} interval={0} tickFormatter={(v) => v.replace(/_/g, ' ')} />
             <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip title={(l, p) => p?.[0]?.payload?.label ?? l} names={{ rows_flagged: 'Rows flagged' }} />} />
             <Bar dataKey="rows_flagged" radius={[0, 4, 4, 0]}>
-              {chartRules.map((r) => <Cell key={r.rule} fill={r.category.startsWith('brief') ? c.accent : r.category === 'alert source' ? c.refresh : c.serious} />)}
+              {chartRules.map((r) => <Cell key={r.rule} fill={r.category.startsWith('brief') ? 'url(#pi-bar-orange-h)' : r.category === 'alert source' ? c.ink : c.peach} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </Panel>
+      <Panel title="Issue log composition" subtitle="Findings by group">
+        <Donut centerLabel="findings" parts={[
+          { label: 'Latency > 15 s', value: count('latency_over_15s'), color: c.orange },
+          { label: 'Refresh failed', value: count('refresh_failed'), color: c.ink },
+          { label: 'Orphaned owner', value: count('orphaned_owner_nan') + count('orphaned_owner_sentinel'), color: c.peach },
+          { label: 'Other rules', value: count('aws_cost_usage_mismatch') + count('negative_credits') + count('refresh_status_unknown') + count('zero_usage') + count('concurrent_exceeds_monthly_views'), color: c.gray },
+        ]} />
+        <div className="footnote">Other = AWS outliers, negative credits, UNKNOWN status, zero views, impossible usage.</div>
+      </Panel>
+      </div>
 
       {SECTIONS.map((sec) => (
         <Panel key={sec.title} className="mt" title={sec.title} flush bordered>

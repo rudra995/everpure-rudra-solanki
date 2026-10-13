@@ -34,8 +34,7 @@ export default function Audit() {
 
   return (
     <>
-      <PageHeader eyebrow="Governance · append-only" title="Audit log"
-        subtitle="Append-only record of sign-ins, denied requests and every action that changes state (claims, approvals, acknowledgements, replay control)."
+      <PageHeader title="Audit log"
         actions={<button type="button" className="btn" onClick={reload}><RefreshCw size={14} />Refresh</button>} />
 
       <Group title="Audit trail">

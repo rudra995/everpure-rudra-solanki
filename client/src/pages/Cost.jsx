@@ -10,7 +10,7 @@ import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { useTheme } from '../theme.jsx';
 import { Group, Badge, ErrorState, Loading, Notice, PageHeader, Panel, Segmented, SplitBar, Stat, Legend } from '../components/ui.jsx';
-import { ChartTooltip, axis } from '../components/charts.jsx';
+import { ChartTooltip, Donut, axis } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { awsPerView } from '../data.js';
 import { fmt } from '../format.js';
@@ -84,6 +84,12 @@ export default function Cost() {
     return out;
   }, [snaps]);
   const scatter = useMemo(() => awsPerView(snaps), [snaps]);
+  // How many reports fall in each $0.50 band of total cost per view.
+  const perViewHist = useMemo(() => {
+    const bins = Array.from({ length: 8 }, (_, i) => ({ lo: i * 0.5, label: i === 7 ? '$3.5+' : `$${(i * 0.5).toFixed(1)}`, reports: 0 }));
+    for (const r of reports) bins[Math.min(7, Math.floor(n(r.fully_loaded_cost_per_view_usd) / 0.5))].reports += 1;
+    return bins;
+  }, [reports]);
 
   if (reportsQ.loading || summary.loading) return <Loading />;
   if (reportsQ.error) return <ErrorState error={reportsQ.error} />;
@@ -124,11 +130,8 @@ export default function Cost() {
 
   return (
     <>
-      <PageHeader eyebrow="Task 3 · Cloud cost allocation"
-        title="Cost attribution"
-        subtitle={all
-          ? 'Snowflake compute and AWS hosting attributed to every report from the simulated ACCOUNT_USAGE logs. Negative credits are excluded, never flipped to positive.'
-          : `Snowflake compute and AWS hosting for the ${reports.length} reports you own, calculated exactly like the platform figure.`} />
+      <PageHeader
+        title="Cost attribution" />
 
       <Group title="Unit cost" subtitle="Snowflake compute + AWS hosting per active view">
       <div className="grid g-main">
@@ -137,13 +140,13 @@ export default function Cost() {
           <div className="hero-value">{usd4(t.totalPerView)}</div>
           <div className="hero-eq">
             <span>=</span>
-            <span className="row" style={{ gap: 6 }}><Snowflake size={15} color={c.snowflake} /><b>{usd4(t.snowPerView)}</b> Snowflake compute</span>
+            <span className="row" style={{ gap: 6 }}><Snowflake size={15} color={'#e9e9e4'} /><b>{usd4(t.snowPerView)}</b> Snowflake compute</span>
             <span>+</span>
             <span className="row" style={{ gap: 6 }}><Cloud size={15} color={c.aws} /><b>{usd4(t.awsPerView)}</b> AWS hosting</span>
           </div>
           <div style={{ marginTop: 18 }}>
             <SplitBar parts={[
-              { label: 'Snowflake per view', value: t.snowPerView, color: c.snowflake, display: usd4(t.snowPerView) },
+              { label: 'Snowflake per view', value: t.snowPerView, color: '#e9e9e4', display: usd4(t.snowPerView) },
               { label: 'AWS per view', value: t.awsPerView, color: c.aws, display: usd4(t.awsPerView) },
             ]} />
           </div>
@@ -171,7 +174,29 @@ export default function Cost() {
       </Group>
 
       <Group title="Where the cost goes" subtitle="By snapshot, report, owner and usage">
-      <div className="grid g-2 mt">
+      <div className="grid g-main">
+        <Panel title="Cost per view across reports" subtitle="Number of reports in each $0.50 band (Snowflake + AWS)">
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={perViewHist} margin={{ top: 6, right: 4, bottom: 0, left: -18 }} barCategoryGap="16%">
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="label" {...axis(c)} />
+              <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
+              <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip title={(l) => `${l} per view`} names={{ reports: 'Reports' }} />} />
+              <ReferenceLine x={perViewHist[Math.min(7, Math.floor(t.totalPerView / 0.5))]?.label} stroke={c.ink} strokeDasharray="4 4" strokeOpacity={0.6}
+                label={{ value: `platform ${fmt.usd(t.totalPerView, 2)}`, position: 'top', fill: c.axis, fontSize: 11 }} />
+              <Bar dataKey="reports" radius={[6, 6, 0, 0]}>
+                {perViewHist.map((b) => <Cell key={b.label} fill={b.lo + 0.5 > t.totalPerView ? 'url(#pi-bar-orange)' : c.ink} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <Legend items={[{ label: 'Below platform average', color: c.ink }, { label: 'At or above average', color: c.orange }]} />
+        </Panel>
+        <Panel title="Spend split" subtitle="Total across all snapshots">
+          <Donut centerLabel="total" centerValue={fmt.usdCompact(t.snowflake + t.aws)} format={fmt.usdCompact}
+            parts={[{ label: 'Snowflake compute', value: t.snowflake, color: c.snowflake }, { label: 'AWS hosting', value: t.aws, color: c.aws, fill: 'url(#pi-hatch)' }]} />
+        </Panel>
+      </div>
+      <div className="grid g-2">
         <Panel title="Spend by snapshot" subtitle="Snapshots 1–20 per report (file order; the data has no dates)"
           actions={<Segmented value={snapMode} onChange={setSnapMode} options={[{ value: 'total', label: 'Total $' }, { value: 'perView', label: 'Per view' }]} />}>
           <ResponsiveContainer width="100%" height={260}>
@@ -183,7 +208,7 @@ export default function Cost() {
                 names={{ snowflake: 'Snowflake', aws: 'AWS', snowPV: 'Snowflake / view', awsPV: 'AWS / view' }}
                 format={(v) => (snapMode === 'total' ? fmt.usd(v, 0) : fmt.usd(v, 4))} />} />
               <Bar dataKey={snapMode === 'total' ? 'snowflake' : 'snowPV'} stackId="a" fill={c.snowflake} />
-              <Bar dataKey={snapMode === 'total' ? 'aws' : 'awsPV'} stackId="a" fill={c.aws} radius={[4, 4, 0, 0]} />
+              <Bar dataKey={snapMode === 'total' ? 'aws' : 'awsPV'} stackId="a" fill="url(#pi-hatch)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
           <Legend items={[{ label: 'Snowflake compute', color: c.snowflake }, { label: 'AWS hosting', color: c.aws }]} />
@@ -201,7 +226,7 @@ export default function Cost() {
                 <YAxis type="category" dataKey="report_id" width={66} {...axis(c)} axisLine={false} interval={0} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ credit_cost_per_view_usd: 'Snowflake / view', aws_per_view_usd: 'AWS / view' }} format={(v) => fmt.usd(v, 3)} />} />
                 <Bar dataKey="credit_cost_per_view_usd" stackId="a" fill={c.snowflake} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
-                <Bar dataKey="aws_per_view_usd" stackId="a" fill={c.aws} radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
+                <Bar dataKey="aws_per_view_usd" stackId="a" fill="url(#pi-hatch)" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />
               </BarChart>
             ) : (
               <BarChart data={top} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap="24%">
@@ -210,7 +235,7 @@ export default function Cost() {
                 <YAxis type="category" dataKey="report_id" width={66} {...axis(c)} axisLine={false} interval={0} />
                 <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ credit_cost_usd: 'Snowflake', aws_cost_usd: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
                 {sortBy !== 'aws' && <Bar dataKey="credit_cost_usd" stackId="a" fill={c.snowflake} radius={sortBy === 'snowflake' ? [0, 4, 4, 0] : 0} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
-                {sortBy !== 'snowflake' && <Bar dataKey="aws_cost_usd" stackId="a" fill={c.aws} radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
+                {sortBy !== 'snowflake' && <Bar dataKey="aws_cost_usd" stackId="a" fill="url(#pi-hatch)" radius={[0, 4, 4, 0]} onClick={(d) => navigate(`/reports/${d.report_id}`)} cursor="pointer" />}
               </BarChart>
             )}
           </ResponsiveContainer>

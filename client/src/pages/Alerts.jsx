@@ -1,17 +1,16 @@
-// Live operations (brief, Task 2). Alerts arrive over Socket.IO the moment the replayed
+// Live operations. Alerts arrive over Socket.IO the moment the replayed
 // telemetry breaches a rule: load latency over 15 s, or a refresh FAILED / TIMED_OUT.
 // Every alert is delivered and counted (no cooldown); grouping only changes the display.
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, BellOff, Bell, Check, Clock, Pause, Play, Radio, RefreshCw, Siren, Zap } from 'lucide-react';
+import { BellOff, Bell, Check, Clock, RefreshCw, Siren } from 'lucide-react';
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useLive } from '../live/LiveContext.jsx';
 import { useApi } from '../api/useApi.js';
-import { api } from '../api/http.js';
 import { useTheme, SEVERITY_KEY } from '../theme.jsx';
 import { Group, Empty, Notice, PageHeader, Panel, Segmented, SeverityBadge, Stat, Legend } from '../components/ui.jsx';
-import { ChartTooltip, axis } from '../components/charts.jsx';
+import { ChartTooltip, Donut, axis } from '../components/charts.jsx';
 import { AlertIcon, AlertRow } from '../components/LiveWidgets.jsx';
 import { fmt } from '../format.js';
 
@@ -25,13 +24,12 @@ export default function Alerts() {
   const navigate = useNavigate();
   const { c } = useTheme();
   const live = useLive();
-  const { alerts, connected, simulator, session, acknowledge, clearUnseen, toastsOn, setToastsOn } = live;
+  const { alerts, simulator, acknowledge, clearUnseen, toastsOn, setToastsOn } = live;
   const stats = useApi('/api/alerts/stats');
   const [type, setType] = useState('all');
   const [severity, setSeverity] = useState('all');
   const [view, setView] = useState('events');
   const [limit, setLimit] = useState(PAGE);
-  const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const canAck = can([P.ALERTS_ACK_ALL, P.ALERTS_ACK_OWN]);
   const isAdmin = can(P.ALERTS_READ_ALL);
@@ -53,12 +51,16 @@ export default function Alerts() {
     return buckets.map((b) => ({ ...b, label: `${Math.round((b.t - end) / 1000)}s` }));
   }, [alerts, now]);
 
-  const liveOnly = alerts.filter((a) => a.receivedAt);
-  const sevMix = ['WARNING', 'HIGH', 'CRITICAL'].map((s) => ({ s, n: liveOnly.filter((a) => a.severity === s).length }));
+  const ofSev = (v) => alerts.filter((a) => a.severity === v).length;
+  const ofType = (t) => alerts.filter((a) => a.type === t).length;
   const noisy = useMemo(() => {
     const m = new Map();
-    for (const a of alerts) m.set(a.report_id, (m.get(a.report_id) || 0) + 1);
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, n]) => ({ id, n }));
+    for (const a of alerts) {
+      const e = m.get(a.report_id) || { id: a.report_id, latency: 0, refresh: 0 };
+      e[a.type === 'LATENCY_BREACH' ? 'latency' : 'refresh'] += 1;
+      m.set(a.report_id, e);
+    }
+    return [...m.values()].sort((x, y) => (y.latency + y.refresh) - (x.latency + x.refresh)).slice(0, 8);
   }, [alerts]);
 
   const filtered = useMemo(() => alerts.filter((a) => (type === 'all' || a.type === type)
@@ -75,63 +77,14 @@ export default function Alerts() {
     return [...by.values()];
   }, [filtered]);
 
-  async function control(action, intervalMs) {
-    setBusy(true);
-    try {
-      const { simulator: s } = await api.post(`/api/simulator/${action}`, intervalMs ? { interval_ms: intervalMs } : {});
-      live.setSimulator((prev) => ({ ...prev, ...s }));
-    } finally { setBusy(false); }
-  }
-
   const s = stats.data?.stats;
-  const perMin = rate.slice(-12).reduce((a, b) => a + b.latency + b.refresh, 0);
-  const uptime = session?.connectedAt ? Math.round((now - session.connectedAt) / 1000) : 0;
 
   return (
     <>
-      <PageHeader eyebrow="Task 2 · Real-time telemetry & alerting" title="Live operations"
-        subtitle={`Alerts are pushed over WebSocket the moment a dashboard takes longer than 15 s to load or an automated refresh fails. ${isAdmin ? 'You receive every report\'s alerts.' : 'You receive alerts for the reports you own only.'}`}
-        actions={can(P.SIMULATOR_CONTROL) && (
-          <>
-            {simulator?.running
-              ? <button type="button" className="btn" disabled={busy} onClick={() => control('stop')}><Pause size={14} />Pause replay</button>
-              : <button type="button" className="btn primary" disabled={busy} onClick={() => control('start')}><Play size={14} />Start replay</button>}
-            <Segmented value={String(simulator?.interval_ms ?? 1000)} onChange={(v) => control('start', Number(v))}
-              options={[{ value: '1000', label: '1×' }, { value: '500', label: '2×' }, { value: '250', label: '4×' }]} />
-          </>
-        )} />
+      <PageHeader title="Live operations" />
 
-      <Group title="Session" subtitle="Connection, replay and alert counts">
-      <div className="grid g-main">
-        <Panel title="WebSocket session" icon={Radio} iconColor={connected ? c.good : c.critical}
-          subtitle="Socket.IO connection authenticated with your JWT at the handshake. The server only emits to the rooms your role joins.">
-          <div className="grid g-4" style={{ gap: 18 }}>
-            <div><div className="xs faint">Status</div><div className="row strong" style={{ gap: 7, marginTop: 4 }}><span className={`live-dot ${connected ? 'on' : ''}`} />{connected ? 'Connected' : 'Reconnecting…'}</div></div>
-            <div><div className="xs faint">Transport</div><div className="strong" style={{ marginTop: 4 }}>{session?.transport ?? '—'}</div></div>
-            <div><div className="xs faint">Connected for</div><div className="strong num" style={{ marginTop: 4 }}>{connected ? `${Math.floor(uptime / 60)}m ${uptime % 60}s` : '—'}</div></div>
-            <div><div className="xs faint">Events received</div><div className="strong num" style={{ marginTop: 4 }}>{fmt.num(live.received + live.telemetryCount)}</div></div>
-          </div>
-          <div style={{ marginTop: 16 }}>
-            <div className="xs faint" style={{ marginBottom: 7 }}>Rooms joined (decided by the server from your permissions)</div>
-            <div className="row wrap" style={{ gap: 8 }}>
-              {(session?.rooms ?? []).map((r) => <span key={r} className="room"><Zap size={11} color={c.accent} />{r}</span>)}
-              {!session?.rooms?.length && <span className="faint small">—</span>}
-            </div>
-          </div>
-        </Panel>
-        <Panel title="Telemetry replay" icon={Activity} iconColor={c.accent} subtitle="The source file is static, so snapshots are replayed one by one as live telemetry.">
-          <div className="row between"><span className="muted small">Snapshot</span><b className="num">{simulator?.last_seq ? `#${simulator.last_seq} of 20` : '—'}</b></div>
-          <div className="progress" style={{ margin: '8px 0 14px' }}><span style={{ width: `${((simulator?.last_seq ?? 0) / 20) * 100}%` }} /></div>
-          <div className="dl" style={{ gridTemplateColumns: '1fr auto' }}>
-            <dt>State</dt><dd className="strong" style={{ color: simulator?.running ? c.good : c.warning }}>{simulator?.running ? 'Running' : 'Paused'}</dd>
-            <dt>Cycle</dt><dd>{simulator?.cycle ?? '—'}</dd>
-            <dt>Speed</dt><dd>{simulator ? `${1000 / simulator.interval_ms} snapshots / s` : '—'}</dd>
-            <dt>Alert rate (last 60 s)</dt><dd className="strong">{perMin} / min</dd>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid g-4 mt">
+      <Group title="Alert counts" subtitle="Latency breaches and refresh failures">
+      <div className="grid g-4">
         <Stat variant="accent" tone="accent" icon={Bell} label="Alerts received live" value={fmt.num(live.received)} sub="This browser session" />
         <Stat tone="latency" icon={Clock} label="Latency breaches" value={fmt.num(s?.LATENCY_BREACH)} sub={stats.data?.scope === 'all' ? 'Server total since start' : 'Your reports'} />
         <Stat tone="refresh" icon={RefreshCw} label="Refresh failures" value={fmt.num(s?.REFRESH_FAILURE)} sub="FAILED or TIMED_OUT" />
@@ -139,40 +92,44 @@ export default function Alerts() {
       </div>
       </Group>
 
-      <Group title="Alert activity" subtitle="Rate, severity and noisiest reports">
-      <div className="grid g-main mt">
+      <Group title="Alert activity" subtitle="Arrival rate, severity, type and the reports raising the most alerts">
+      <div className="grid g-main">
         <Panel title="Alert rate" subtitle="Alerts received per 5 seconds, last 2 minutes · updates live">
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={210}>
             <AreaChart data={rate} margin={{ top: 6, right: 4, bottom: 0, left: -18 }}>
-              <defs>
-                <linearGradient id="g-lat" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.latency} stopOpacity={0.5} /><stop offset="100%" stopColor={c.latency} stopOpacity={0.05} /></linearGradient>
-                <linearGradient id="g-ref" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.refresh} stopOpacity={0.5} /><stop offset="100%" stopColor={c.refresh} stopOpacity={0.05} /></linearGradient>
-              </defs>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="label" {...axis(c)} interval={5} />
               <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
               <Tooltip content={<ChartTooltip showTotal title={(l) => `${l} ago`} names={{ latency: 'Latency breaches', refresh: 'Refresh failures' }} />} />
-              <Area type="monotone" dataKey="latency" stackId="1" stroke={c.latency} strokeWidth={2} fill="url(#g-lat)" isAnimationActive={false} />
-              <Area type="monotone" dataKey="refresh" stackId="1" stroke={c.refresh} strokeWidth={2} fill="url(#g-ref)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="refresh" stackId="1" stroke={c.refresh} strokeWidth={2} fill="url(#pi-grad-ink)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="latency" stackId="1" stroke={c.latency} strokeWidth={2.2} fill="url(#pi-grad-orange)" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
           <Legend items={[{ label: 'Latency breach', color: c.latency }, { label: 'Refresh failure', color: c.refresh }]} />
         </Panel>
-        <Panel title="Noisiest reports" subtitle="Most alerts in this feed · click to open">
+        <Panel title="By severity" subtitle="Alerts in this feed">
+          <Donut centerLabel="alerts" parts={['WARNING', 'HIGH', 'CRITICAL'].map((v) => ({ label: v.charAt(0) + v.slice(1).toLowerCase(), value: ofSev(v), color: c[SEVERITY_KEY[v]] }))} />
+          <div className="footnote">Warning 15–30 s · High 30–45 s or refresh failure · Critical &gt; 45 s</div>
+        </Panel>
+      </div>
+      <div className="grid g-main">
+        <Panel title="Most alerted reports" subtitle="In this feed · click a bar to open the report">
           {noisy.length ? (
-            <ResponsiveContainer width="100%" height={170}>
-              <BarChart data={noisy} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }} barCategoryGap="28%">
-                <XAxis type="number" hide allowDecimals={false} />
-                <YAxis type="category" dataKey="id" width={66} {...axis(c)} axisLine={false} />
-                <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip names={{ n: 'Alerts' }} />} />
-                <Bar dataKey="n" fill={c.accent} radius={[0, 4, 4, 0]} cursor="pointer" onClick={(d) => navigate(`/reports/${d.id}`)} />
+            <ResponsiveContainer width="100%" height={230}>
+              <BarChart data={noisy} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }} barCategoryGap="26%">
+                <CartesianGrid horizontal={false} />
+                <XAxis type="number" {...axis(c)} allowDecimals={false} />
+                <YAxis type="category" dataKey="id" width={64} {...axis(c)} axisLine={false} interval={0} />
+                <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal names={{ latency: 'Latency', refresh: 'Refresh' }} />} />
+                <Bar dataKey="refresh" stackId="a" fill={c.refresh} cursor="pointer" onClick={(d) => navigate(`/reports/${d.id}`)} />
+                <Bar dataKey="latency" stackId="a" fill="url(#pi-bar-orange-h)" radius={[0, 6, 6, 0]} cursor="pointer" onClick={(d) => navigate(`/reports/${d.id}`)} />
               </BarChart>
             </ResponsiveContainer>
           ) : <Empty>No alerts yet</Empty>}
-          <div className="small muted" style={{ margin: '6px 0 8px' }}>Severity mix (received live)</div>
-          <div className="legend">
-            {sevMix.map(({ s: sv, n }) => <span key={sv}><span className="sw" style={{ background: c[SEVERITY_KEY[sv]] }} />{sv}<b>{n}</b></span>)}
-          </div>
+          <Legend items={[{ label: 'Latency', color: c.latency }, { label: 'Refresh', color: c.refresh }]} />
+        </Panel>
+        <Panel title="By type" subtitle="One snapshot can raise both">
+          <Donut centerLabel="alerts" parts={[{ label: 'Latency breach', value: ofType('LATENCY_BREACH'), color: c.latency }, { label: 'Refresh failure', value: ofType('REFRESH_FAILURE'), color: c.refresh }]} />
         </Panel>
       </div>
       </Group>

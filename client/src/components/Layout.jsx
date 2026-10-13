@@ -1,12 +1,12 @@
-// App shell: a dock on the left (icon rail that expands on hover to show section names;
-// only pages this role may open), and a top bar of pills: brand, current page, data source,
-// live status, telemetry replay, alerts bell and the signed-in user.
+// App shell: a dark sidebar on the left (icon rail that expands while hovered and collapses
+// when the pointer leaves; only pages this role may open; profile and sign out at the bottom)
+// and a top bar with the current page, data source, live status, replay, alerts and theme.
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Activity, Bell, ChevronRight, Database, LogOut, Moon, Siren, Sun, X } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useLive } from '../live/LiveContext.jsx';
-import { useTheme, SEVERITY_KEY } from '../theme.jsx';
+import { useTheme, SEVERITY_KEY, ChartDefs } from '../theme.jsx';
 import { NAV } from '../nav.js';
 import { api } from '../api/http.js';
 import { fmt } from '../format.js';
@@ -14,30 +14,32 @@ import { fmt } from '../format.js';
 const initials = (name = '') => name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 const SOURCE_LABEL = { duckdb: 'DuckDB', snowflake: 'Snowflake' };
 
-function Dock({ items, theme, setTheme, onSignOut }) {
+function Sidebar({ items, user, onSignOut }) {
+  // Clicking a link moves focus into the sidebar; drop it so the rail collapses as soon as
+  // the pointer leaves (expansion is driven by :hover only).
+  const blur = (e) => e.currentTarget.blur();
   return (
-    <nav className="dock" aria-label="Main navigation">
-      <div className="dock-group">
-        <button type="button" className={`dock-item ${theme === 'light' ? 'on' : ''}`} onClick={() => setTheme('light')} title="Light theme">
-          <Sun size={18} /><span className="dock-label">Light</span>
-        </button>
-        <button type="button" className={`dock-item ${theme === 'dark' ? 'on' : ''}`} onClick={() => setTheme('dark')} title="Dark theme">
-          <Moon size={18} /><span className="dock-label">Dark</span>
-        </button>
-      </div>
-      <div className="dock-group">
-        <div className="dock-head">Sections</div>
+    <nav className="sidebar" aria-label="Main navigation">
+      <Link to="/" className="side-logo" onClick={blur} title="Pure Insights">
+        <span className="side-logo-mark"><Activity size={20} /></span>
+        <span className="side-text"><b>Pure Insights</b><small>Command Centre</small></span>
+      </Link>
+      <div className="side-items">
         {items.map(({ to, label, icon: Icon, badge }) => (
-          <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `dock-item ${isActive ? 'active' : ''}`} title={label}>
-            <Icon size={18} /><span className="dock-label">{label}</span>
-            {badge ? <span className="dock-badge">{badge}</span> : null}
+          <NavLink key={to} to={to} end={to === '/'} onClick={blur} title={label}
+            className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
+            <Icon size={19} /><span className="side-text">{label}</span>
+            {badge ? <span className="side-badge">{badge}</span> : null}
           </NavLink>
         ))}
       </div>
-      <div className="dock-spacer" />
-      <div className="dock-group">
-        <button type="button" className="dock-item" onClick={onSignOut} title="Sign out">
-          <LogOut size={18} /><span className="dock-label">Sign out</span>
+      <div className="side-foot">
+        <div className="side-user">
+          <span className="side-avatar">{initials(user.name)}</span>
+          <span className="side-text"><b>{user.name}</b><small>{user.roleLabel}</small></span>
+        </div>
+        <button type="button" className="side-item" onClick={(e) => { blur(e); onSignOut(); }} title="Sign out">
+          <LogOut size={19} /><span className="side-text">Sign out</span>
         </button>
       </div>
     </nav>
@@ -47,7 +49,7 @@ function Dock({ items, theme, setTheme, onSignOut }) {
 export default function Layout() {
   const { user, can, logout } = useAuth();
   const live = useLive();
-  const { theme, setTheme, c } = useTheme();
+  const { theme, toggle, c } = useTheme();
   const location = useLocation();
   const [source, setSource] = useState(null);
   const [bellOpen, setBellOpen] = useState(false);
@@ -69,14 +71,11 @@ export default function Layout() {
 
   return (
     <div className="shell">
-      <Dock items={items} theme={theme} setTheme={setTheme} onSignOut={logout} />
+      <ChartDefs />
+      <Sidebar items={items} user={user} onSignOut={logout} />
 
       <div className="main">
         <header className="topbar">
-          <Link to="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="brand-mark"><Activity size={17} color="#fff" /></div>
-            <div><div className="brand-name">Pure Insights</div><div className="brand-sub">Command Centre</div></div>
-          </Link>
           <div className="crumbs"><span>Command Centre</span><ChevronRight size={14} /><b>{crumb}</b></div>
           <div className="spacer" />
           <span className="pill"><Database size={13} />Source <b>{SOURCE_LABEL[source] ?? '—'}</b></span>
@@ -109,14 +108,9 @@ export default function Layout() {
               )}
             </div>
           )}
-
-          <div className="row user-pill" style={{ gap: 10 }}>
-            <div className="avatar">{initials(user.name)}</div>
-            <div style={{ lineHeight: 1.2, paddingRight: 8 }}>
-              <div className="small strong">{user.name}</div>
-              <div className="xs faint">{user.roleLabel}</div>
-            </div>
-          </div>
+          <button type="button" className="icon-btn" onClick={toggle} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </header>
         <main className="content"><Outlet /></main>
       </div>

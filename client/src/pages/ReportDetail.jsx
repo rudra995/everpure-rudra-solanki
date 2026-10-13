@@ -67,13 +67,13 @@ export default function ReportDetail() {
   return (
     <>
       <Link to="/health" className="btn sm" style={{ marginBottom: 16 }}><ArrowLeft size={14} />Back to health</Link>
-      <PageHeader eyebrow="Report drill-down" title={`${r.report_id} · ${r.report_name}`}
-        subtitle={<span className="row wrap" style={{ gap: 8 }}>
-          Owner <span className="mono">{r.canonical_owner ?? '—'}</span>
-          {r.currently_orphaned && <Badge color={c.ownership}>Currently orphaned</Badge>}
-          {r.owner_reassigned && <Badge color={c.accent}>Ownership claimed</Badge>}
-          {cost && <Badge color={c.unknown}>{cost.owner_distinct_count} different owner emails in source</Badge>}
-        </span>} />
+      <PageHeader title={`${r.report_id} · ${r.report_name}`} />
+      <div className="row wrap" style={{ gap: 8, margin: '-6px 0 16px' }}>
+        <span className="pill">Owner <b className="mono">{r.canonical_owner ?? '—'}</b></span>
+        {r.currently_orphaned && <Badge color={c.ownership}>Currently orphaned</Badge>}
+        {r.owner_reassigned && <Badge color={c.accent}>Ownership claimed</Badge>}
+        {cost && <Badge color={c.unknown}>{cost.owner_distinct_count} different owner emails in source</Badge>}
+      </div>
 
       <Group title="Current state">
       <div className="grid g-5">
@@ -116,7 +116,7 @@ export default function ReportDetail() {
                     <YAxis {...axis(c)} axisLine={false} width={48} tickFormatter={fmt.usdCompact} />
                     <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ snowflake: 'Snowflake', aws: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
                     <Bar dataKey="snowflake" stackId="a" fill={c.snowflake} />
-                    <Bar dataKey="aws" stackId="a" fill={c.aws} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="aws" stackId="a" fill="url(#pi-hatch)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
                 <Legend items={[{ label: 'Snowflake compute', color: c.snowflake }, { label: 'AWS hosting', color: c.aws }]} />
