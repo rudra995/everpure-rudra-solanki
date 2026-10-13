@@ -19,6 +19,7 @@ const COST_FIELDS = [
   'eligible_fully_loaded_cost_usd', 'credits_per_view', 'credit_cost_per_view_usd',
   'fully_loaded_cost_per_view_usd', 'credit_share', 'credit_rank', 'cost_per_view_rank',
   'orphaned_credits', 'orphaned_credit_cost_usd', 'total_queries', 'eligible_views',
+  'credits_clean', 'aws_hosting_cost_usd',
 ];
 
 export function maskEmail(email) {

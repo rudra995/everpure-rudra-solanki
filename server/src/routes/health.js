@@ -41,6 +41,12 @@ router.get('/reports', async (req, res) => {
   res.json({ scope: reportScope(req.user), count: rows.length, reports: rows });
 });
 
+// GET /api/health/snapshots  ->  all 20 snapshots of every report in scope (cost fields only if allowed)
+router.get('/snapshots', async (req, res) => {
+  const rows = shapeRows(req.user, await db.query(SQL.snapshotMatrix));
+  res.json({ scope: reportScope(req.user), count: rows.length, snapshots: rows });
+});
+
 // GET /api/health/live  ->  latest replayed telemetry per report (what the simulator last saw)
 router.get('/live', (req, res) => {
   const rows = shapeRows(req.user, liveHealth());

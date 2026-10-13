@@ -1,15 +1,18 @@
-// One report: latest health, cost (if the role may see it) and its 20 snapshots.
-// The x-axis is the snapshot number, never a date: the source data has no timestamps.
+// One report: health now, cost split (Snowflake + AWS, if the role may see cost) and its
+// 20 snapshots. The x-axis is the snapshot number, never a date: the data has no timestamps.
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ArrowLeft, Clock, Eye, FileWarning, Lock, RefreshCw, Snowflake, Timer } from 'lucide-react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApi } from '../api/useApi.js';
-import { Badge, Card, ErrorState, Kpi, Loading, Notice, PageHeader, SeverityBadge, StatusBadge, COLORS } from '../components/ui.jsx';
+import { useTheme, SEVERITY_KEY } from '../theme.jsx';
+import { Badge, ErrorState, Loading, Notice, PageHeader, Panel, SeverityBadge, SplitBar, Stat, StatusBadge, Legend } from '../components/ui.jsx';
+import { ChartTooltip, axis } from '../components/charts.jsx';
 import DataTable from '../components/DataTable.jsx';
 import { fmt } from '../format.js';
 
 export default function ReportDetail() {
   const { reportId } = useParams();
+  const { c } = useTheme();
   const { data, error, loading } = useApi(`/api/reports/${reportId}`);
 
   if (loading) return <Loading />;
@@ -17,92 +20,145 @@ export default function ReportDetail() {
     return (
       <>
         <Link to="/health" className="btn sm" style={{ marginBottom: 16 }}><ArrowLeft size={14} />Back</Link>
-        <ErrorState error={error.status === 403 ? { ...error, message: error.message } : error} />
-        {error.status === 403 && <p className="muted small mt">You can only open reports you own. This request was recorded in the audit log.</p>}
+        {error.status === 403 ? (
+          <div className="panel empty" style={{ padding: 48 }}>
+            <Lock size={26} color="var(--critical)" />
+            <h3 style={{ margin: '10px 0 4px', color: 'var(--text)' }}>{reportId} belongs to another owner</h3>
+            <div>Report Owners can only open their own reports. The server returned 403 and wrote this attempt to the audit log.</div>
+          </div>
+        ) : <ErrorState error={error} />}
       </>
     );
   }
 
   const { report: r, cost, snapshots } = data;
-  const chart = snapshots?.map((s) => ({ ...s, failed: ['FAILED', 'TIMED_OUT'].includes(s.last_refresh_status) ? s.avg_load_time_sec : null }));
+  const price = cost && Number(cost.credits_valid) ? Number(cost.credit_cost_usd) / Number(cost.credits_valid) : null;
+  const chart = snapshots?.map((s) => ({
+    ...s,
+    label: `#${s.snapshot_seq}`,
+    failed: ['FAILED', 'TIMED_OUT'].includes(s.last_refresh_status) ? Number(s.avg_load_time_sec) : null,
+    snowflake: price !== null && s.credits_clean !== null && s.credits_clean !== undefined ? Number(s.credits_clean) * price : null,
+    aws: s.aws_hosting_cost_usd !== undefined ? Number(s.aws_hosting_cost_usd) : null,
+  }));
+  const awsPerView = cost && Number(cost.eligible_views) ? (Number(cost.eligible_fully_loaded_cost_usd) - Number(cost.eligible_credit_cost_usd)) / Number(cost.eligible_views) : null;
 
   const columns = [
-    { key: 'snapshot_seq', label: '#', render: (s) => <span className="num">{s.snapshot_seq}</span> },
+    { key: 'snapshot_seq', label: '#', render: (s) => <span className="num faint">{s.snapshot_seq}</span> },
     { key: 'last_refresh_status', label: 'Refresh', render: (s) => <StatusBadge value={s.last_refresh_status} /> },
-    { key: 'avg_load_time_sec', label: 'Load time', align: 'right', render: (s) => <span className="num">{fmt.sec(s.avg_load_time_sec)}</span> },
+    { key: 'avg_load_time_sec', label: 'Load time', align: 'right', render: (s) => <span className="num strong" style={{ color: c[SEVERITY_KEY[s.latency_severity]] }}>{fmt.sec(s.avg_load_time_sec)}</span> },
     { key: 'latency_severity', label: 'Severity', render: (s) => <SeverityBadge value={s.latency_severity} /> },
-    { key: 'monthly_active_views', label: 'Monthly views', align: 'right', render: (s) => <span className="num">{fmt.num(s.monthly_active_views)}</span> },
+    { key: 'monthly_active_views', label: 'Views', align: 'right', render: (s) => <span className="num">{fmt.num(s.monthly_active_views)}</span> },
     { key: 'concurrent_user_peak', label: 'Peak users', align: 'right', render: (s) => <span className="num">{fmt.num(s.concurrent_user_peak)}</span> },
     ...(cost ? [
       { key: 'credits_clean', label: 'Credits', align: 'right', render: (s) => <span className="num">{fmt.num(s.credits_clean, 2)}</span> },
-      { key: 'credit_cost_per_view_usd', label: 'Cost / view', align: 'right', render: (s) => <span className="num">{fmt.usd(s.credit_cost_per_view_usd, 3)}</span> },
+      { key: 'aws_hosting_cost_usd', label: 'AWS', align: 'right', render: (s) => <span className="num">{fmt.usd(s.aws_hosting_cost_usd)}</span> },
+      { key: 'credit_cost_per_view_usd', label: 'Snowflake / view', align: 'right', render: (s) => <span className="num">{fmt.usd(s.credit_cost_per_view_usd, 3)}</span> },
     ] : []),
     { key: 'flags', label: 'Flags', sortable: false, render: (s) => (
       <div className="row wrap" style={{ gap: 4 }}>
-        {s.is_orphaned && <Badge tone="warning">Orphaned</Badge>}
-        {s.credits_invalid && <Badge tone="critical" title="Negative credits in source: excluded from cost">Negative credits</Badge>}
-        {s.monthly_active_views === 0 && <Badge title="Zero views: cost per view undefined">Zero views</Badge>}
-        {s.usage_inconsistent && <Badge tone="high" title="Concurrent peak above monthly views">Usage inconsistent</Badge>}
-      </div>
-    ) },
+        {s.is_orphaned && <Badge color={c.ownership}>{s.owner_missing ? 'Owner NaN' : 'ORPHANED_REPORT'}</Badge>}
+        {s.credits_invalid && <Badge color={c.critical} title="Negative credits in source: excluded from cost">Negative credits</Badge>}
+        {s.monthly_active_views === 0 && <Badge color={c.unknown} title="Zero views: cost per view undefined">Zero views</Badge>}
+        {s.usage_inconsistent && <Badge color={c.serious} title="Concurrent peak above monthly views">Usage inconsistent</Badge>}
+        {s.aws_cost_usage_mismatch && <Badge color={c.aws} title="AWS cost per view above the Tukey fence">AWS outlier</Badge>}
+      </div>) },
   ];
 
   return (
     <>
       <Link to="/health" className="btn sm" style={{ marginBottom: 16 }}><ArrowLeft size={14} />Back to health</Link>
-      <PageHeader title={`${r.report_id} · ${r.report_name}`}
+      <PageHeader eyebrow="Report drill-down" title={`${r.report_id} · ${r.report_name}`}
         subtitle={<span className="row wrap" style={{ gap: 8 }}>
           Owner <span className="mono">{r.canonical_owner ?? '—'}</span>
-          {r.currently_orphaned && <Badge tone="warning">Currently orphaned</Badge>}
-          {r.owner_reassigned && <Badge tone="accent">Ownership claimed</Badge>}
+          {r.currently_orphaned && <Badge color={c.ownership}>Currently orphaned</Badge>}
+          {r.owner_reassigned && <Badge color={c.accent}>Ownership claimed</Badge>}
+          {cost && <Badge color={c.unknown}>{cost.owner_distinct_count} different owner emails in source</Badge>}
         </span>} />
 
-      <div className="grid grid-4">
-        <Kpi label="Latest load time" value={fmt.sec(r.latest_load_time_sec)} hint={<SeverityBadge value={r.latest_latency_severity} />} />
-        <Kpi label="Latest refresh" value={<StatusBadge value={r.latest_refresh_status} />} hint={`Failure rate ${fmt.pct(r.refresh_failure_rate)} over 20 snapshots`} />
-        <Kpi label="p95 load time" value={fmt.sec(r.p95_load_time_sec)} hint={`${fmt.pct(r.latency_breach_rate)} of snapshots over 15 s`} />
+      <div className="grid g-5">
+        <Stat tone="latency" icon={Clock} label="Load time now" value={fmt.sec(r.latest_load_time_sec)} sub={<SeverityBadge value={r.latest_latency_severity} />} spark={chart} sparkKey="avg_load_time_sec" />
+        <Stat tone="refresh" icon={RefreshCw} label="Refresh now" value={<StatusBadge value={r.latest_refresh_status} />} sub={`Failure rate ${fmt.pct(r.refresh_failure_rate)} over 20`} />
+        <Stat tone="serious" icon={Timer} label="p95 load time" value={fmt.sec(r.p95_load_time_sec)} sub={`${fmt.pct(r.latency_breach_rate)} of snapshots over 15 s`} />
+        <Stat tone="ownership" icon={FileWarning} label="Orphaned snapshots" value={`${r.orphaned_snapshots} / 20`} sub={r.currently_orphaned ? 'Latest snapshot has no owner' : 'Owner on latest snapshot'} />
         {cost
-          ? <Kpi hero label="Credit cost per view" value={fmt.usd(cost.credit_cost_per_view_usd, 4)} hint={`${fmt.num(cost.credits_valid, 0)} valid credits · rank ${cost.credit_rank} of 100 by credits`} />
-          : <Kpi label="Orphaned snapshots" value={r.orphaned_snapshots} hint="Of 20" />}
+          ? <Stat tone="snowflake" icon={Snowflake} label="Cost per view" value={fmt.usd(cost.fully_loaded_cost_per_view_usd, 3)} sub={`${fmt.usd(cost.credit_cost_per_view_usd, 3)} Snowflake + ${fmt.usd(awsPerView, 3)} AWS`} />
+          : <Stat tone="usage" icon={Eye} label="Avg load (20)" value={fmt.sec(r.avg_load_time_sec)} sub="Mean of all snapshots" />}
       </div>
 
       {snapshots ? (
         <>
-          <Card className="mt" title="Load time across the 20 snapshots" subtitle="Bars = load time · red dots = refresh FAILED or TIMED_OUT · dashed line = 15 s alert threshold">
-            <ResponsiveContainer width="100%" height={240}>
-              <ComposedChart data={chart} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-                <CartesianGrid vertical={false} stroke="#f0f2f5" />
-                <XAxis dataKey="snapshot_seq" tick={{ fontSize: 11, fill: '#8a94a6' }} tickLine={false} axisLine={{ stroke: '#e6e8ec' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#8a94a6' }} axisLine={false} tickLine={false} unit="s" />
-                <Tooltip labelFormatter={(l) => `Snapshot ${l}`} formatter={(v, n) => [`${v}s`, n === 'failed' ? 'Refresh failed' : 'Load time']} />
-                <ReferenceLine y={15} stroke={COLORS.WARNING} strokeDasharray="4 3" />
-                <Bar dataKey="avg_load_time_sec" fill="#c7cbf7" radius={[3, 3, 0, 0]} />
-                <Line dataKey="failed" stroke="none" dot={{ r: 4, fill: COLORS.CRITICAL, stroke: '#fff', strokeWidth: 1.5 }} isAnimationActive={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </Card>
-          <Card className="mt" title="Snapshots" subtitle="Every flag raised by the cleaning rules for this report" flush>
+          <div className={`grid ${cost ? 'g-2' : ''} mt`}>
+            <Panel title="Load time by snapshot" subtitle="Bar colour = severity · red dot = refresh FAILED or TIMED_OUT · line = 15 s threshold">
+              <ResponsiveContainer width="100%" height={250}>
+                <ComposedChart data={chart} margin={{ top: 8, right: 6, bottom: 0, left: -14 }} barCategoryGap="18%">
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" {...axis(c)} interval={1} />
+                  <YAxis {...axis(c)} axisLine={false} unit="s" domain={[0, 60]} />
+                  <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip title={(l) => `Snapshot ${l}`} names={{ avg_load_time_sec: 'Load time', failed: 'Refresh failed at' }} format={(v) => `${Number(v).toFixed(1)}s`} />} />
+                  <ReferenceLine y={15} stroke={c.warning} strokeDasharray="4 3" />
+                  <Bar dataKey="avg_load_time_sec" radius={[4, 4, 0, 0]}>
+                    {chart.map((s) => <Cell key={s.snapshot_seq} fill={c[SEVERITY_KEY[s.latency_severity]]} />)}
+                  </Bar>
+                  <Line dataKey="failed" stroke="none" dot={{ r: 5, fill: c.critical, stroke: c.surface, strokeWidth: 2 }} isAnimationActive={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <Legend items={['OK', 'WARNING', 'HIGH', 'CRITICAL'].map((s) => ({ label: s, color: c[SEVERITY_KEY[s]] }))} />
+            </Panel>
+            {cost && (
+              <Panel title="Cost by snapshot" subtitle="Snowflake compute + AWS hosting · gaps = negative credits excluded">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chart} margin={{ top: 8, right: 6, bottom: 0, left: 2 }} barCategoryGap="18%">
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="label" {...axis(c)} interval={1} />
+                    <YAxis {...axis(c)} axisLine={false} width={48} tickFormatter={fmt.usdCompact} />
+                    <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ snowflake: 'Snowflake', aws: 'AWS' }} format={(v) => fmt.usd(v, 0)} />} />
+                    <Bar dataKey="snowflake" stackId="a" fill={c.snowflake} />
+                    <Bar dataKey="aws" stackId="a" fill={c.aws} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <Legend items={[{ label: 'Snowflake compute', color: c.snowflake }, { label: 'AWS hosting', color: c.aws }]} />
+              </Panel>
+            )}
+          </div>
+
+          <div className={`grid ${cost ? 'g-main' : ''} mt`}>
+            <Panel title="Monthly active views by snapshot" subtitle="Usage that the cost is divided by">
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={chart} margin={{ top: 8, right: 6, bottom: 0, left: -10 }}>
+                  <defs><linearGradient id="g-views" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.usage} stopOpacity={0.4} /><stop offset="100%" stopColor={c.usage} stopOpacity={0.02} /></linearGradient></defs>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" {...axis(c)} interval={1} />
+                  <YAxis {...axis(c)} axisLine={false} />
+                  <Tooltip content={<ChartTooltip title={(l) => `Snapshot ${l}`} names={{ monthly_active_views: 'Views' }} />} />
+                  <Area type="monotone" dataKey="monthly_active_views" stroke={c.usage} strokeWidth={2} fill="url(#g-views)" dot={{ r: 2.5, fill: c.usage }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Panel>
+            {cost && (
+              <Panel title="Cost attribution">
+                <div className="stat-value" style={{ marginTop: 0 }}>{fmt.usd(Number(cost.credit_cost_usd) + Number(cost.aws_cost_usd), 0)}</div>
+                <div className="stat-sub" style={{ marginBottom: 12 }}>Total over 20 snapshots · rank {cost.credit_rank} of 100 by credits</div>
+                <SplitBar parts={[
+                  { label: 'Snowflake', value: Number(cost.credit_cost_usd), color: c.snowflake, display: fmt.usd(cost.credit_cost_usd, 0) },
+                  { label: 'AWS', value: Number(cost.aws_cost_usd), color: c.aws, display: fmt.usd(cost.aws_cost_usd, 0) },
+                ]} />
+                <dl className="dl" style={{ marginTop: 16 }}>
+                  <dt>Valid credits</dt><dd>{fmt.num(cost.credits_valid, 2)}</dd>
+                  <dt>Negative snapshots excluded</dt><dd>{cost.credits_invalid_snapshots} ({fmt.num(cost.credits_excluded_negative, 2)} credits)</dd>
+                  <dt>Eligible views</dt><dd>{fmt.num(cost.eligible_views)}</dd>
+                  <dt>Credits per view</dt><dd>{fmt.num(cost.credits_per_view, 4)}</dd>
+                  <dt>Share of platform credits</dt><dd>{fmt.pct(cost.credit_share, 2)}</dd>
+                </dl>
+              </Panel>
+            )}
+          </div>
+
+          <Panel className="mt" flush bordered title="Snapshots" subtitle="Every flag the cleaning rules raised for this report">
             <DataTable rows={snapshots.map((s) => ({ ...s, id: s.snapshot_seq }))} columns={columns} pageSize={20} initialSort={{ key: 'snapshot_seq', dir: 'asc' }} />
-          </Card>
+          </Panel>
         </>
       ) : (
-        <div className="mt"><Notice>Your role sees this report&apos;s health summary only. Snapshot detail and cost are limited to report owners, FinOps and admins.</Notice></div>
-      )}
-
-      {cost && (
-        <Card className="mt" title="Cost attribution">
-          <dl className="dl">
-            <dt>Valid credits (sum of 20 snapshots)</dt><dd className="num">{fmt.num(cost.credits_valid, 2)}</dd>
-            <dt>Credit cost</dt><dd className="num">{fmt.usd(cost.credit_cost_usd)}</dd>
-            <dt>Negative credit snapshots excluded</dt><dd className="num">{cost.credits_invalid_snapshots} ({fmt.num(cost.credits_excluded_negative, 2)} credits)</dd>
-            <dt>AWS hosting cost</dt><dd className="num">{fmt.usd(cost.aws_cost_usd)}</dd>
-            <dt>Monthly active views (eligible)</dt><dd className="num">{fmt.num(cost.eligible_views)}</dd>
-            <dt>Credits per view</dt><dd className="num">{fmt.num(cost.credits_per_view, 4)}</dd>
-            <dt>Fully loaded cost per view</dt><dd className="num">{fmt.usd(cost.fully_loaded_cost_per_view_usd, 4)}</dd>
-            <dt>Share of platform credits</dt><dd className="num">{fmt.pct(cost.credit_share, 2)}</dd>
-            <dt>Distinct owner emails in source</dt><dd className="num">{cost.owner_distinct_count}</dd>
-          </dl>
-        </Card>
+        <div className="mt"><Notice>Your role sees this report&apos;s health summary only. Snapshot detail and cost belong to report owners, FinOps and admins.</Notice></div>
       )}
     </>
   );

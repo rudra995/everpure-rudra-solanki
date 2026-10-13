@@ -27,7 +27,7 @@ function Guard({ perm, children }) {
   const { can } = useAuth();
   if (perm && !can(perm)) {
     return (
-      <div className="card empty" style={{ marginTop: 40 }}>
+      <div className="panel empty" style={{ marginTop: 40 }}>
         <Lock size={22} style={{ marginBottom: 8 }} />
         <div style={{ fontWeight: 600, color: 'var(--text)' }}>No access</div>
         <div>Your role doesn&apos;t include this page. Access is enforced by the server too.</div>

@@ -34,7 +34,7 @@ router.get('/:reportId', async (req, res) => {
   if (can(req.user, P.REPORTS_READ_ALL) || can(req.user, P.REPORTS_READ_OWN)) {
     const snaps = await db.query(SQL.reportSnapshots, [reportId]);
     const seesCost = Boolean(body.cost?.credits_valid !== undefined);
-    body.snapshots = seesCost ? snaps : snaps.map(({ credits_clean, credit_cost_per_view_usd, ...s }) => s);
+    body.snapshots = seesCost ? snaps : snaps.map(({ credits_clean, credit_cost_per_view_usd, aws_hosting_cost_usd, ...s }) => s);
   }
   return res.json(body);
 });

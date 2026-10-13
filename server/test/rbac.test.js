@@ -169,3 +169,23 @@ describe('orphaned reports + claim -> approve review gate', () => {
     assert.equal(res.status, 409);
   });
 });
+
+describe('snapshot matrix (heatmap + per-snapshot charts)', () => {
+  test('admin gets all 2,000 snapshots with Snowflake and AWS cost', async () => {
+    const res = await api.get(tokens.admin, '/api/health/snapshots');
+    assert.equal(res.body.count, 2000);
+    assert.ok(res.body.snapshots.every((s) => 'aws_hosting_cost_usd' in s && 'credit_cost_usd' in s));
+  });
+  test('viewer gets all snapshots but no cost columns and masked owners', async () => {
+    const res = await api.get(tokens.viewer, '/api/health/snapshots');
+    assert.equal(res.body.count, 2000);
+    assert.ok(res.body.snapshots.every((s) => !('aws_hosting_cost_usd' in s) && !('credit_cost_usd' in s) && !('credits_clean' in s)));
+    assert.ok(res.body.snapshots.every((s) => MASKED.test(s.canonical_owner)));
+  });
+  test('report owner gets only the 20 snapshots of each report they own', async () => {
+    const own = (await api.get(tokens.owner, '/api/health/reports')).body.count;
+    const res = await api.get(tokens.owner, '/api/health/snapshots');
+    assert.equal(res.body.count, own * 20);
+    assert.ok(res.body.snapshots.every((s) => s.canonical_owner === 'user_3@company.com'));
+  });
+});

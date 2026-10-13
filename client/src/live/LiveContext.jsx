@@ -22,6 +22,8 @@ export function LiveProvider({ children }) {
   const [unseen, setUnseen] = useState(0);            // badge in the sidebar
   const [telemetry, setTelemetry] = useState([]);     // newest first
   const [toasts, setToasts] = useState([]);
+  const [session, setSession] = useState(null);      // rooms, transport, socket id from the handshake
+  const [telemetryCount, setTelemetryCount] = useState(0);
   const [toastsOn, setToastsOn] = useState(true);
   const toastsOnRef = useRef(toastsOn);
   toastsOnRef.current = toastsOn;
@@ -42,19 +44,20 @@ export function LiveProvider({ children }) {
     const socket = io({ auth: { token: tokenStore.get() }, transports: ['websocket'] });
     socketRef.current = socket;
 
-    socket.on('connect', () => setConnected(true));
+    socket.on('connect', () => { setConnected(true); setSession((s) => ({ ...s, id: socket.id, transport: socket.io.engine.transport.name, connectedAt: Date.now() })); });
     socket.on('disconnect', () => setConnected(false));
     socket.on('connect_error', () => setConnected(false));
-    socket.on('welcome', (w) => setSimulator(w.simulator));
+    socket.on('welcome', (w) => { setSimulator(w.simulator); setSession((s) => ({ ...s, rooms: w.rooms, receivesAlerts: w.receives_alerts })); });
     socket.on('simulator:status', setSimulator);
 
     socket.on('telemetry', (t) => {
-      setTelemetry((list) => [t, ...list].slice(0, MAX_TELEMETRY));
+      setTelemetry((list) => [{ ...t, receivedAt: Date.now() }, ...list].slice(0, MAX_TELEMETRY));
+      setTelemetryCount((n) => n + 1);
       setSimulator((s) => (s ? { ...s, last_seq: t.snapshot_seq, cycle: t.cycle } : s));
     });
 
     socket.on('alert', (a) => {
-      setAlerts((list) => (list.some((x) => x.id === a.id) ? list : [{ ...a, fresh: true }, ...list].slice(0, MAX_ALERTS)));
+      setAlerts((list) => (list.some((x) => x.id === a.id) ? list : [{ ...a, fresh: true, receivedAt: Date.now() }, ...list].slice(0, MAX_ALERTS)));
       setReceived((n) => n + 1);
       setUnseen((n) => n + 1);
       if (a.severity === 'CRITICAL' && toastsOnRef.current) {
@@ -73,6 +76,8 @@ export function LiveProvider({ children }) {
       setAlerts([]);
       setTelemetry([]);
       setReceived(0);
+      setTelemetryCount(0);
+      setSession(null);
       setUnseen(0);
     };
   }, [user, receivesAlerts]);
@@ -85,7 +90,7 @@ export function LiveProvider({ children }) {
   const value = {
     connected, simulator, setSimulator, alerts, received, unseen,
     clearUnseen: () => setUnseen(0),
-    telemetry, acknowledge, receivesAlerts,
+    telemetry, telemetryCount, session, acknowledge, receivesAlerts,
     toasts, dismissToast, toastsOn, setToastsOn,
   };
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;

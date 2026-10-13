@@ -2,21 +2,29 @@
 // a Report Owner requests a currently orphaned report, a Platform Admin approves or rejects.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, UserPlus, X } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Check, Coins, FileWarning, History, MailX, UserPlus, X } from 'lucide-react';
 import { useAuth, P } from '../auth/AuthContext.jsx';
 import { useApi } from '../api/useApi.js';
 import { api } from '../api/http.js';
-import { Badge, Card, ErrorState, Kpi, Loading, Modal, Notice, PageHeader, Segmented, Empty } from '../components/ui.jsx';
+import { Badge, ErrorState, Loading, Modal, Notice, PageHeader, Panel, Segmented, Stat, Empty, Legend, SplitBar } from '../components/ui.jsx';
+import { ChartTooltip, axis } from '../components/charts.jsx';
+import { useTheme } from '../theme.jsx';
+import { bySnapshot } from '../data.js';
 import DataTable from '../components/DataTable.jsx';
 import { fmt } from '../format.js';
 
-const CLAIM_TONE = { PENDING: 'warning', APPROVED: 'ok', REJECTED: 'critical' };
+const CLAIM_TONE = { PENDING: 'warning', APPROVED: 'good', REJECTED: 'critical' };
 
 export default function Orphaned() {
   const { user, can } = useAuth();
   const canClaim = can(P.ORPHANED_CLAIM);
   const canApprove = can(P.ORPHANED_APPROVE);
+  const { c } = useTheme();
+  const th = c;
   const orphaned = useApi('/api/orphaned');
+  const snapsQ = useApi('/api/health/snapshots');
+  const series = useMemo(() => bySnapshot(snapsQ.data?.snapshots ?? []), [snapsQ.data]);
   const claims = useApi(canClaim || canApprove ? '/api/orphaned/claims' : null);
   const [scope, setScope] = useState('current');
   const [claiming, setClaiming] = useState(null);   // report row being claimed
@@ -55,8 +63,8 @@ export default function Orphaned() {
     { key: 'report_id', label: 'Report', render: (r) => <><Link to={`/reports/${r.report_id}`} onClick={(e) => e.stopPropagation()}><b>{r.report_id}</b></Link><div className="faint small">{r.report_name}</div></> },
     { key: 'report_currently_orphaned', label: 'Status', sortValue: (r) => (r.report_currently_orphaned ? 1 : 0), render: (r) => (
       <div className="row wrap" style={{ gap: 4 }}>
-        {r.report_currently_orphaned ? <Badge tone="warning">Orphaned now</Badge> : <Badge>Had gaps</Badge>}
-        {r.owner_reassigned && <Badge tone="accent">Claimed</Badge>}
+        {r.report_currently_orphaned ? <Badge color={c.ownership} dot>Orphaned now</Badge> : <Badge color={c.unknown}>Had gaps</Badge>}
+        {r.owner_reassigned && <Badge color={c.accent}>Claimed</Badge>}
       </div>
     ) },
     { key: 'canonical_owner', label: 'Most frequent owner', title: 'Most frequent valid email across the 20 snapshots (a suggestion, not proof)',
@@ -69,8 +77,8 @@ export default function Orphaned() {
       render: (r) => <span className="num">{fmt.usd(r.orphaned_credit_cost_usd, 0)}</span> }] : []),
     ...(canClaim ? [{ key: 'action', label: '', sortable: false, render: (r) => {
       if (!r.report_currently_orphaned) return null;
-      if (pendingFor.has(r.report_id)) return <Badge tone="warning">Claim pending</Badge>;
-      if (r.canonical_owner?.toLowerCase() === user.email.toLowerCase()) return <Badge tone="ok">Yours</Badge>;
+      if (pendingFor.has(r.report_id)) return <Badge color={c.warning}>Claim pending</Badge>;
+      if (r.canonical_owner?.toLowerCase() === user.email.toLowerCase()) return <Badge color={c.good}>Yours</Badge>;
       return <button type="button" className="btn sm" onClick={(e) => { e.stopPropagation(); setClaiming(r); }}><UserPlus size={13} />Claim</button>;
     } }] : []),
   ];
@@ -79,20 +87,48 @@ export default function Orphaned() {
 
   return (
     <>
-      <PageHeader title="Orphaned reports"
+      <PageHeader eyebrow="Task 1 · Ownership governance" title="Orphaned reports"
         subtitle="A record is orphaned when its owner email is missing (NaN) or the placeholder ORPHANED_REPORT. No report is orphaned in all 20 snapshots, so a report counts as currently orphaned when its latest snapshot has no owner." />
 
-      <div className="grid grid-4">
-        <Kpi label="Orphaned records" value={s.orphaned_records} tone="warning" hint={`${s.missing_email_records} NaN · ${s.sentinel_records} ORPHANED_REPORT`} />
-        <Kpi label="Reports currently orphaned" value={s.reports_currently_orphaned} tone="critical" hint="Latest snapshot has no owner" />
-        <Kpi label="Reports ever orphaned" value={s.reports_ever_orphaned} hint="At least one snapshot without owner" />
+      <div className="grid g-4">
+        <Stat tone="ownership" icon={MailX} label="Orphaned records" value={s.orphaned_records} sub={`${s.missing_email_records} NaN · ${s.sentinel_records} ORPHANED_REPORT`} spark={series} sparkKey="orphanNaN" />
+        <Stat tone="critical" icon={FileWarning} label="Reports orphaned now" value={s.reports_currently_orphaned} sub="Latest snapshot has no owner" />
+        <Stat tone="accent" icon={History} label="Reports ever orphaned" value={s.reports_ever_orphaned} sub="At least one snapshot without owner" />
         {seesAllCost
-          ? <Kpi label="Unowned Snowflake spend" value={fmt.usd(reports.reduce((a, r) => a + (r.orphaned_credit_cost_usd || 0), 0), 0)} hint="Credit cost on orphaned snapshots" />
-          : <Kpi label="Pending claims" value={claimList.filter((c) => c.status === 'PENDING').length} hint="Waiting for admin review" />}
+          ? <Stat tone="snowflake" icon={Coins} label="Unowned Snowflake spend" value={fmt.usd(reports.reduce((a, r) => a + (r.orphaned_credit_cost_usd || 0), 0), 0)} sub="Credit cost on orphaned snapshots" />
+          : <Stat tone="warning" icon={UserPlus} label="Pending claims" value={claimList.filter((x) => x.status === 'PENDING').length} sub="Waiting for admin review" />}
+      </div>
+
+      <div className="grid g-main mt">
+        <Panel title="Orphaned records by snapshot" subtitle="Missing email (NaN) vs the ORPHANED_REPORT placeholder, snapshots 1–20">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={series} margin={{ top: 6, right: 4, bottom: 0, left: -18 }} barCategoryGap="22%">
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="label" {...axis(c)} interval={1} />
+              <YAxis {...axis(c)} axisLine={false} allowDecimals={false} />
+              <Tooltip cursor={{ fill: 'var(--hover)' }} content={<ChartTooltip showTotal title={(l) => `Snapshot ${l}`} names={{ orphanNaN: 'Missing email (NaN)', orphanSentinel: 'ORPHANED_REPORT' }} />} />
+              <Bar dataKey="orphanNaN" stackId="a" fill={c.ownership} />
+              <Bar dataKey="orphanSentinel" stackId="a" fill={c.aws} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <Legend items={[{ label: 'Missing email (NaN)', color: c.ownership }, { label: 'ORPHANED_REPORT placeholder', color: c.aws }]} />
+        </Panel>
+        <Panel title="How a report becomes orphaned" subtitle="Two defect patterns from the brief, both kept (never dropped)">
+          <SplitBar parts={[
+            { label: 'NaN', value: s.missing_email_records, color: c.ownership, display: s.missing_email_records },
+            { label: 'ORPHANED_REPORT', value: s.sentinel_records, color: c.aws, display: s.sentinel_records },
+          ]} />
+          <dl className="dl" style={{ marginTop: 16 }}>
+            <dt>Records (rows) orphaned</dt><dd>{s.orphaned_records} of 2,000</dd>
+            <dt>Reports orphaned in every snapshot</dt><dd>0</dd>
+            <dt>Reports orphaned now (snapshot 20)</dt><dd style={{ color: c.ownership, fontWeight: 600 }}>{s.reports_currently_orphaned}</dd>
+            <dt>Owner emails per report in source</dt><dd>7 to 13</dd>
+          </dl>
+        </Panel>
       </div>
 
       {(canClaim || canApprove) && (
-        <Card className="mt" title={canApprove ? 'Ownership claims · review queue' : 'Your ownership claims'}
+        <Panel className="mt" bordered title={canApprove ? 'Ownership claims · review queue' : 'Your ownership claims'}
           subtitle={canApprove ? 'Approving reassigns the report everywhere: access, alerts and cost. You cannot decide your own claim.' : 'An admin reviews every claim before ownership changes.'} flush>
           {claimList.length === 0 && <Empty>{canApprove ? 'No claims yet.' : 'You have not claimed any reports. Use Claim on a currently orphaned report below.'}</Empty>}
           {claimList.length > 0 && (
@@ -104,7 +140,7 @@ export default function Orphaned() {
                     <td><b>{c.report_id}</b><div className="faint small">{c.report_name}</div></td>
                     <td><span className="mono small">{c.requested_by}</span><div className="faint small">{fmt.dateTime(c.requested_at)}</div></td>
                     <td style={{ maxWidth: 320 }}>{c.reason}</td>
-                    <td><Badge tone={CLAIM_TONE[c.status]}>{c.status}</Badge></td>
+                    <td><Badge color={th[CLAIM_TONE[c.status]]} dot>{c.status}</Badge></td>
                     <td className="small">{c.decided_by ? <><span className="mono">{c.decided_by}</span>{c.decision_note && <div className="faint">{c.decision_note}</div>}</> : <span className="faint">—</span>}</td>
                     <td className="right">
                       {canApprove && c.status === 'PENDING' && (
@@ -119,17 +155,17 @@ export default function Orphaned() {
               </tbody>
             </table>
           )}
-        </Card>
+        </Panel>
       )}
 
-      <Card className="mt" title="Reports with orphaned snapshots" flush>
+      <Panel className="mt" title="Reports with orphaned snapshots" flush bordered>
         <DataTable rows={rows} columns={columns} searchKeys={['report_id', 'report_name', 'canonical_owner']}
           initialSort={{ key: 'orphaned_snapshots', dir: 'desc' }}
           toolbar={<Segmented value={scope} onChange={setScope} options={[
             { value: 'current', label: `Currently orphaned (${s.reports_currently_orphaned})` },
             { value: 'all', label: `Ever orphaned (${s.reports_ever_orphaned})` },
           ]} />} />
-      </Card>
+      </Panel>
 
       <div className="mt">
         <Notice>
