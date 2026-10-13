@@ -1,47 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="930" height="170" viewBox="0 45 930 170" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="250" viewBox="0 0 1050 250" font-family="Helvetica, Arial, sans-serif" font-size="13">
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
     </marker>
   </defs>
-  <rect y="45" width="930" height="170" fill="#ffffff"/>
+  <rect width="1050" height="250" fill="#ffffff"/>
 
-  <!-- 1 source -->
-  <rect x="10" y="60" width="150" height="90" rx="8" fill="#f5f5f5" stroke="#666"/>
-  <text x="85" y="95" text-anchor="middle" font-weight="bold">Source CSV</text>
-  <text x="85" y="114" text-anchor="middle" font-size="11.5" fill="#444">2,000 snapshots</text>
-  <text x="85" y="130" text-anchor="middle" font-size="11.5" fill="#444">100 reports</text>
+  <!-- source CSV -->
+  <rect x="10" y="85" width="130" height="80" rx="8" fill="#f5f5f5" stroke="#666"/>
+  <text x="75" y="118" text-anchor="middle" font-weight="bold">Source CSV</text>
+  <text x="75" y="137" text-anchor="middle" font-size="11.5" fill="#444">2,000 snapshots</text>
+  <text x="75" y="152" text-anchor="middle" font-size="11.5" fill="#444">100 reports</text>
 
-  <!-- 2 cleaning + SQL -->
-  <rect x="215" y="60" width="180" height="90" rx="8" fill="#d5e8d4" stroke="#82b366"/>
-  <text x="305" y="88" text-anchor="middle" font-weight="bold">Cleaning + SQL</text>
-  <text x="305" y="107" text-anchor="middle" font-size="11.5" fill="#333">pandas rules, issue log</text>
-  <text x="305" y="123" text-anchor="middle" font-size="11.5" fill="#333">ACCOUNT_USAGE sim → marts</text>
-  <text x="305" y="139" text-anchor="middle" font-size="11.5" fill="#333">Snowflake / DuckDB</text>
+  <!-- DuckDB cylinder -->
+  <path d="M210,32 v56 a65,12 0 0 0 130,0 v-56" fill="#fff2cc" stroke="#d6b656"/>
+  <ellipse cx="275" cy="32" rx="65" ry="12" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="275" y="66" text-anchor="middle" font-weight="bold">DuckDB</text>
+  <text x="275" y="83" text-anchor="middle" font-size="11.5" fill="#333">default, no account</text>
 
-  <!-- 3 backend -->
-  <rect x="450" y="60" width="180" height="90" rx="8" fill="#dae8fc" stroke="#6c8ebf"/>
-  <text x="540" y="88" text-anchor="middle" font-weight="bold">Express API</text>
-  <text x="540" y="107" text-anchor="middle" font-size="11.5" fill="#333">JWT sign-in, RBAC</text>
-  <text x="540" y="123" text-anchor="middle" font-size="11.5" fill="#333">REST endpoints</text>
-  <text x="540" y="139" text-anchor="middle" font-size="11.5" fill="#333">alert rules</text>
+  <!-- Snowflake cylinder -->
+  <path d="M210,150 v56 a65,12 0 0 0 130,0 v-56" fill="#dae8fc" stroke="#6c8ebf"/>
+  <ellipse cx="275" cy="150" rx="65" ry="12" fill="#dae8fc" stroke="#6c8ebf"/>
+  <text x="275" y="184" text-anchor="middle" font-weight="bold">Snowflake</text>
+  <text x="275" y="201" text-anchor="middle" font-size="11.5" fill="#333">live deployment</text>
 
-  <!-- 4 frontend -->
-  <rect x="740" y="60" width="180" height="90" rx="8" fill="#ffe6cc" stroke="#d79b00"/>
-  <text x="830" y="88" text-anchor="middle" font-weight="bold">React dashboard</text>
-  <text x="830" y="107" text-anchor="middle" font-size="11.5" fill="#333">health, orphaned reports</text>
-  <text x="830" y="123" text-anchor="middle" font-size="11.5" fill="#333">live alerts, cost</text>
-  <text x="830" y="139" text-anchor="middle" font-size="11.5" fill="#333">view changes by role</text>
+  <!-- SQL views -->
+  <rect x="420" y="80" width="150" height="90" rx="8" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="495" y="110" text-anchor="middle" font-weight="bold">SQL views</text>
+  <text x="495" y="129" text-anchor="middle" font-size="11.5" fill="#333">staging, cost marts,</text>
+  <text x="495" y="145" text-anchor="middle" font-size="11.5" fill="#333">audit checks</text>
 
-  <!-- arrows -->
-  <line x1="160" y1="105" x2="213" y2="105" stroke="#333" marker-end="url(#a)"/>
-  <line x1="395" y1="105" x2="448" y2="105" stroke="#333" marker-end="url(#a)"/>
-  <text x="421" y="96" text-anchor="middle" font-size="11" fill="#555">SQL</text>
-  <line x1="630" y1="92" x2="738" y2="92" stroke="#333" marker-end="url(#a)"/>
-  <text x="684" y="84" text-anchor="middle" font-size="11" fill="#555">REST</text>
-  <line x1="630" y1="122" x2="738" y2="122" stroke="#333" stroke-dasharray="5 3" marker-end="url(#a)"/>
-  <text x="684" y="138" text-anchor="middle" font-size="11" fill="#555">WebSocket alerts</text>
+  <!-- backend -->
+  <rect x="630" y="80" width="150" height="90" rx="8" fill="#e1d5e7" stroke="#9673a6"/>
+  <text x="705" y="110" text-anchor="middle" font-weight="bold">Express backend</text>
+  <text x="705" y="129" text-anchor="middle" font-size="11.5" fill="#333">JWT sign-in, RBAC</text>
+  <text x="705" y="145" text-anchor="middle" font-size="11.5" fill="#333">REST, alert rules</text>
 
-  <!-- footnote -->
-  <text x="465" y="195" text-anchor="middle" font-size="11.5" fill="#555">Same SQL views on DuckDB (default, no account) or live Snowflake; results reconciled across pandas, DuckDB and Snowflake.</text>
+  <!-- frontend -->
+  <rect x="910" y="80" width="130" height="90" rx="8" fill="#ffe6cc" stroke="#d79b00"/>
+  <text x="975" y="110" text-anchor="middle" font-weight="bold">React frontend</text>
+  <text x="975" y="129" text-anchor="middle" font-size="11.5" fill="#333">dashboard,</text>
+  <text x="975" y="145" text-anchor="middle" font-size="11.5" fill="#333">view by role</text>
+
+  <!-- CSV loads into both databases -->
+  <line x1="140" y1="115" x2="208" y2="65" stroke="#333" marker-end="url(#a)"/>
+  <line x1="140" y1="135" x2="208" y2="180" stroke="#333" marker-end="url(#a)"/>
+  <text x="170" y="125" text-anchor="middle" font-size="11" fill="#555">load</text>
+
+  <!-- views point back to the databases -->
+  <line x1="420" y1="110" x2="342" y2="65" stroke="#333" marker-end="url(#a)"/>
+  <line x1="420" y1="140" x2="342" y2="180" stroke="#333" marker-end="url(#a)"/>
+  <text x="392" y="128" text-anchor="middle" font-size="11" fill="#555">read</text>
+
+  <!-- backend queries the views -->
+  <line x1="630" y1="125" x2="572" y2="125" stroke="#333" marker-end="url(#a)"/>
+  <text x="601" y="116" text-anchor="middle" font-size="11" fill="#555">SQL</text>
+
+  <!-- frontend <-> backend -->
+  <line x1="910" y1="105" x2="782" y2="105" stroke="#333" marker-end="url(#a)"/>
+  <text x="845" y="97" text-anchor="middle" font-size="11" fill="#555">HTTPS requests</text>
+  <line x1="780" y1="145" x2="908" y2="145" stroke="#333" stroke-dasharray="5 3" marker-end="url(#a)"/>
+  <text x="845" y="162" text-anchor="middle" font-size="11" fill="#555">WebSocket alerts</text>
 </svg>
