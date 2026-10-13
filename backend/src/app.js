@@ -38,10 +38,15 @@ export function createApp() {
 
   // Central error handler. Express 5 forwards rejected promises from async routes here.
   // eslint-disable-next-line no-unused-vars
+  // Errors thrown with a status (e.g. by the ownership service) get the same codes as the routes.
+  const CODE = { 400: 'bad_request', 401: 'unauthenticated', 403: 'forbidden', 404: 'not_found', 409: 'conflict' };
   app.use((err, _req, res, _next) => {
     const status = err.status || 500;
     if (status >= 500) console.error('[error]', err);
-    res.status(status).json({ error: status >= 500 ? 'internal_error' : 'request_error', message: status >= 500 ? 'Unexpected server error' : err.message });
+    res.status(status).json({
+      error: status >= 500 ? 'internal_error' : (CODE[status] ?? 'bad_request'),
+      message: status >= 500 ? 'Unexpected server error' : err.message,
+    });
   });
 
   return app;

@@ -189,3 +189,11 @@ describe('snapshot matrix (heatmap + per-snapshot charts)', () => {
     assert.ok(res.body.snapshots.every((s) => s.canonical_owner === 'user_3@company.com'));
   });
 });
+
+describe('error codes', () => {
+  test('errors thrown by the ownership service use the standard codes', async () => {
+    const res = await api.post(tokens.admin, '/api/orphaned/claims/999999/approve');
+    assert.equal(res.status, 404);
+    assert.equal(res.body.error, 'not_found');
+  });
+});
